@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance — Fasting entry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#15191C;background:#F3F4F1}
+a{color:#1F5FA8}a:hover{color:#174A84}
+input,button{font:inherit;color:inherit}
+</style>
+<style>body{display:flex;justify-content:center;padding:24px 0}</style>
+</head>
+<body>
+<!-- Static export of design/source/Fasting.dc.html. Interactive states are shown in their default. -->
+<div style="width: 390px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 12px 24px 32px; background: #F3F4F1; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15191C">
+<header style="display: flex; flex-direction: column; gap: 4px">
+<a href="Main.html" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 44px; font-size: 15px; font-weight: 500; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Brief</a>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.1">Fasting</h1>
+</header>
+
+<section aria-label="Current fast" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.1em; color: #545B61">IN PROGRESS</span>
+<span style="font-size: 12px; color: #3E454B">Goal reached at 11:10 AM</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 40px; font-weight: 500; line-height: 1">14h 20m</span><span style="font-size: 15px; color: #545B61">of 16h</span></div>
+<div style="height: 8px; border-radius: 4px; background: #E3E6E3; display: flex"><div style="width: 90%; height: 8px; border-radius: 4px; background: #15191C"></div></div>
+</section>
+
+<section aria-label="Window" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 500; color: #3E454B">Start</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<input value="Thu, Sep 24" aria-label="Start date" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; font-size: 15px">
+<input value="7:10 PM" aria-label="Start time" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 16px">
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 500; color: #3E454B">End</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<input placeholder="Date" aria-label="End date" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; font-size: 15px">
+<input placeholder="Time" aria-label="End time" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 16px">
+</div>
+<button type="button" style="align-self: flex-start; min-height: 44px; padding: 0; background: none; border: 0; color: #1F5FA8; font-size: 14px; font-weight: 500; cursor: pointer">End fast now</button>
+</div>
+<div role="group" aria-labelledby="goal-label" style="display: flex; flex-direction: column; gap: 8px">
+<span id="goal-label" style="font-size: 13px; font-weight: 500; color: #3E454B">Goal</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<button type="button" aria-pressed="false" style="min-height: 44px; border-radius: 10px; border: 1px solid #C9CFCB; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; cursor: pointer">12h</button>
+<button type="button" aria-pressed="false" style="min-height: 44px; border-radius: 10px; border: 1px solid #C9CFCB; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; cursor: pointer">14h</button>
+<button type="button" aria-pressed="true" style="min-height: 44px; border-radius: 10px; border: 1px solid #15191C; background: #15191C; color: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; cursor: pointer">16h</button>
+<button type="button" aria-pressed="false" style="min-height: 44px; border-radius: 10px; border: 1px solid #C9CFCB; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; cursor: pointer">18h</button>
+</div>
+</div>
+</section>
+
+<section aria-label="Recent windows" style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Recent</h2>
+<div style="display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; min-height: 40px; border-bottom: 1px solid #E3E6E3; font-size: 14px"><span>Wed, Sep 23</span><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace">16h 05m</span><span style="font-size: 12px; color: #545B61">goal 16h</span></div>
+<div style="display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; min-height: 40px; border-bottom: 1px solid #E3E6E3; font-size: 14px"><span>Tue, Sep 22</span><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace">15h 40m</span><span style="font-size: 12px; color: #545B61">goal 16h</span></div>
+<div style="display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; min-height: 40px; font-size: 14px"><span>Mon, Sep 21</span><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace">13h 55m</span><span style="font-size: 12px; color: #545B61">goal 14h</span></div>
+</section>
+
+<button type="button" style="min-height: 52px; border-radius: 12px; border: 0; background: #15191C; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">Save</button>
+</div>
+</body>
+</html>

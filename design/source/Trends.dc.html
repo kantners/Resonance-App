@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resonance — Trends</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#15191C;background:#F3F4F1}
+a{color:#1F5FA8}a:hover{color:#174A84}
+button{font:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 1160px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F1; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15191C">
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 28px 24px 16px">
+<header style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; color: #545B61">SEP 18 – SEP 24</span>
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 34px; line-height: 1.1">Trends</h1>
+</header>
+
+<section aria-label="Exposure against recovery" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Screen time vs. the next morning</h2>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #3E454B">
+<span style="width: 10px; height: 10px; border-radius: 2px; background: #B4500B"></span>
+<span>Screen time per day</span>
+</div>
+<svg width="310" height="120" viewBox="0 0 310 120" role="img" aria-label="Daily screen time, Sep 18 to 24. Highest Saturday 5h 5m and Thursday 5h 47m." style="display: block">
+<line x1="30" y1="10" x2="310" y2="10" stroke="#E3E6E3" stroke-width="1"></line>
+<line x1="30" y1="60" x2="310" y2="60" stroke="#E3E6E3" stroke-width="1"></line>
+<line x1="30" y1="110" x2="310" y2="110" stroke="#C9CFCB" stroke-width="1"></line>
+<text x="0" y="14" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">6h</text>
+<text x="0" y="64" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">3h</text>
+<text x="0" y="114" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">0</text>
+<rect x="41" y="51.1" width="18" height="58.9" rx="3" fill="#B4500B" fill-opacity="0.4"></rect>
+<rect x="81" y="25.3" width="18" height="84.7" rx="3" fill="#B4500B"></rect>
+<rect x="121" y="35.6" width="18" height="74.4" rx="3" fill="#B4500B" fill-opacity="0.4"></rect>
+<rect x="161" y="58.3" width="18" height="51.7" rx="3" fill="#B4500B" fill-opacity="0.4"></rect>
+<rect x="201" y="43.1" width="18" height="66.9" rx="3" fill="#B4500B" fill-opacity="0.4"></rect>
+<rect x="241" y="55" width="18" height="55" rx="3" fill="#B4500B" fill-opacity="0.4"></rect>
+<rect x="281" y="13.6" width="18" height="96.4" rx="3" fill="#B4500B"></rect>
+<line x1="30" y1="40.3" x2="310" y2="40.3" stroke="#15191C" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.55"></line>
+<text x="0" y="44" font-family="IBM Plex Mono, monospace" font-size="10" fill="#15191C">avg</text>
+</svg>
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #E3E6E3">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #3E454B">
+<span style="width: 14px; height: 2px; background: #1F5FA8"></span>
+<span>Next morning</span>
+</div>
+<div role="group" aria-label="Recovery metric" style="display: flex; gap: 6px">
+<button type="button" aria-pressed="{{ isHrv }}" onClick="{{ pickHrv }}" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #15191C; font-size: 13px; font-weight: 500; cursor: pointer; background: {{ hrvBg }}; color: {{ hrvFg }}">HRV</button>
+<button type="button" aria-pressed="{{ isSleep }}" onClick="{{ pickSleep }}" style="min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #15191C; font-size: 13px; font-weight: 500; cursor: pointer; background: {{ sleepBg }}; color: {{ sleepFg }}">Sleep score</button>
+</div>
+</div>
+
+<sc-if value="{{ isHrv }}" hint-placeholder-val="{{ true }}">
+<svg width="310" height="140" viewBox="0 0 310 140" role="img" aria-label="Next-morning HRV in milliseconds. Lowest readings, 44 and 42, follow the two highest screen-time days." style="display: block">
+<line x1="30" y1="10" x2="310" y2="10" stroke="#E3E6E3" stroke-width="1"></line>
+<line x1="30" y1="100" x2="310" y2="100" stroke="#C9CFCB" stroke-width="1"></line>
+<line x1="30" y1="53.2" x2="310" y2="53.2" stroke="#1F5FA8" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.6"></line>
+<text x="0" y="14" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">60</text>
+<text x="0" y="57" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">48</text>
+<text x="0" y="104" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">35</text>
+<polyline points="50,42.4 90,67.6 130,56.8 170,31.6 210,49.6 250,35.2 290,74.8" fill="none" stroke="#1F5FA8" stroke-width="2" stroke-linejoin="round"></polyline>
+<circle cx="50" cy="42.4" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="90" cy="67.6" r="4.5" fill="#1F5FA8"></circle>
+<circle cx="130" cy="56.8" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="170" cy="31.6" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="210" cy="49.6" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="250" cy="35.2" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="290" cy="74.8" r="4.5" fill="#1F5FA8"></circle>
+<text x="90" y="86" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">44</text>
+<text x="290" y="93" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">42</text>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61" text-anchor="middle">
+<text x="50" y="120">Fr</text><text x="90" y="120">Sa</text><text x="130" y="120">Su</text><text x="170" y="120">Mo</text><text x="210" y="120">Tu</text><text x="250" y="120">We</text><text x="290" y="120">Th</text>
+<text x="50" y="134">18</text><text x="90" y="134">19</text><text x="130" y="134">20</text><text x="170" y="134">21</text><text x="210" y="134">22</text><text x="250" y="134">23</text><text x="290" y="134">24</text>
+</g>
+</svg>
+</sc-if>
+<sc-if value="{{ isSleep }}" hint-placeholder-val="{{ false }}">
+<svg width="310" height="140" viewBox="0 0 310 140" role="img" aria-label="Sleep score. Lowest scores, 72 and 71, follow the two highest screen-time days." style="display: block">
+<line x1="30" y1="10" x2="310" y2="10" stroke="#E3E6E3" stroke-width="1"></line>
+<line x1="30" y1="100" x2="310" y2="100" stroke="#C9CFCB" stroke-width="1"></line>
+<line x1="30" y1="46" x2="310" y2="46" stroke="#1F5FA8" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.6"></line>
+<text x="0" y="14" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">90</text>
+<text x="0" y="50" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">78</text>
+<text x="0" y="104" font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61">60</text>
+<polyline points="50,40 90,64 130,52 170,25 210,43 250,31 290,67" fill="none" stroke="#1F5FA8" stroke-width="2" stroke-linejoin="round"></polyline>
+<circle cx="50" cy="40" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="90" cy="64" r="4.5" fill="#1F5FA8"></circle>
+<circle cx="130" cy="52" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="170" cy="25" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="210" cy="43" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="250" cy="31" r="4" fill="#FFFFFF" stroke="#1F5FA8" stroke-width="2"></circle>
+<circle cx="290" cy="67" r="4.5" fill="#1F5FA8"></circle>
+<text x="90" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">72</text>
+<text x="290" y="85" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#1F5FA8">71</text>
+<g font-family="IBM Plex Mono, monospace" font-size="10" fill="#545B61" text-anchor="middle">
+<text x="50" y="120">Fr</text><text x="90" y="120">Sa</text><text x="130" y="120">Su</text><text x="170" y="120">Mo</text><text x="210" y="120">Tu</text><text x="250" y="120">We</text><text x="290" y="120">Th</text>
+<text x="50" y="134">18</text><text x="90" y="134">19</text><text x="130" y="134">20</text><text x="170" y="134">21</text><text x="210" y="134">22</text><text x="250" y="134">23</text><text x="290" y="134">24</text>
+</g>
+</svg>
+</sc-if>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #3E454B">Each point is the morning after that day's screen time. Dashed lines are your averages.</p>
+</section>
+
+<section aria-label="Observation" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 16px; line-height: 1.4; font-weight: 500">Your two highest-exposure days, Saturday and Thursday, were followed by your two lowest HRV readings.</p>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #3E454B"><span>Days logged toward a reliable read</span><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace">7 / 21</span></div>
+<div style="height: 6px; border-radius: 3px; background: #E3E6E3; display: flex"><div style="width: 33%; height: 6px; border-radius: 3px; background: #15191C"></div></div>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #3E454B">One week can suggest a pattern but not confirm one. Resonance reports strength of association after 21 logged days.</p>
+</section>
+
+<section aria-label="Week over week" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 6px; font-size: 15px; font-weight: 600">Week over week</h2>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.06em; color: #545B61; padding-bottom: 6px; border-bottom: 1px solid #E3E6E3">
+<span>DAILY AVG</span><span style="text-align: right">THIS</span><span style="text-align: right">LAST</span><span style="text-align: right">Δ</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 8px; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #EEF0EE">
+<span>Screen time</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">4h 11m</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; color: #545B61">4h 38m</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">−27m</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 8px; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #EEF0EE">
+<span>Pickups</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">81</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; color: #545B61">88</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">−7</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 8px; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #EEF0EE">
+<span>HRV (ms)</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">49</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; color: #545B61">46</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">+3</span>
+</div>
+<div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 0.8fr; gap: 8px; font-size: 14px; padding: 8px 0">
+<span>Sleep score</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">78</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace; color: #545B61">75</span><span style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, monospace">+3</span>
+</div>
+</section>
+</main>
+
+<nav aria-label="Primary" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #D9DDDA; background: #FFFFFF; padding: 6px 8px 24px">
+<a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; text-decoration: none; color: #545B61; font-size: 12px; font-weight: 500">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16a8 8 0 1 1 16 0"></path><path d="M12 16l4-5"></path></svg>Brief</a>
+<a href="Exposure-Screenshot.dc.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; text-decoration: none; color: #545B61; font-size: 12px; font-weight: 500">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M12 8v8M8 12h8"></path></svg>Log</a>
+<a href="Trends.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; text-decoration: none; color: #15191C; font-size: 12px; font-weight: 600">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16"></path><path d="M5 15l4-5 4 3 6-7"></path></svg>Trends</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1160}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { metric: 'hrv' };
+}
+renderVals() {
+const isHrv = this.state.metric === 'hrv';
+return {
+isHrv: isHrv,
+isSleep: !isHrv,
+hrvBg: isHrv ? '#15191C' : '#FFFFFF',
+hrvFg: isHrv ? '#FFFFFF' : '#15191C',
+sleepBg: isHrv ? '#FFFFFF' : '#15191C',
+sleepFg: isHrv ? '#15191C' : '#FFFFFF',
+pickHrv: () => this.setState({ metric: 'hrv' }),
+pickSleep: () => this.setState({ metric: 'sleep' })
+};
+}
+}
+</script>
+</body>
+</html>

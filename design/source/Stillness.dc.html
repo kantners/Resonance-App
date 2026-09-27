@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resonance — Log stillness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#15191C;background:#F3F4F1}
+a{color:#1F5FA8}a:hover{color:#174A84}
+input,button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 1140px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 12px 24px 32px; background: #F3F4F1; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15191C">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<a href="Quiet.dc.html" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 44px; font-size: 15px; font-weight: 500; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Quiet</a>
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.1">Log stillness</h1>
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; color: #545B61">THU · SEP 24</span>
+</div>
+<p style="margin: 0; font-size: 14px; line-height: 1.45; color: #3E454B">Time you chose to spend without input. Counted separately from time the phone simply wasn't used.</p>
+</header>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="padding: 0; margin-bottom: 10px; font-size: 15px; font-weight: 600">What was it?</legend>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button type="button" aria-pressed="{{ t.breath.on }}" onClick="{{ t.breath.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.breath.bc }}; box-shadow: {{ t.breath.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Breathwork</span><span style="font-size: 12px; color: #545B61">Paced or resonance</span></button>
+<button type="button" aria-pressed="{{ t.med.on }}" onClick="{{ t.med.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.med.bc }}; box-shadow: {{ t.med.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Meditation</span><span style="font-size: 12px; color: #545B61">Any practice</span></button>
+<button type="button" aria-pressed="{{ t.reiki.on }}" onClick="{{ t.reiki.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.reiki.bc }}; box-shadow: {{ t.reiki.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Reiki session</span><span style="font-size: 12px; color: #545B61">Given or received</span></button>
+<button type="button" aria-pressed="{{ t.walk.on }}" onClick="{{ t.walk.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.walk.bc }}; box-shadow: {{ t.walk.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Walk</span><span style="font-size: 12px; color: #545B61">No podcast, no calls</span></button>
+<button type="button" aria-pressed="{{ t.read.on }}" onClick="{{ t.read.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.read.bc }}; box-shadow: {{ t.read.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Reading</span><span style="font-size: 12px; color: #545B61">Paper or e-reader</span></button>
+<button type="button" aria-pressed="{{ t.none.on }}" onClick="{{ t.none.pick }}" style="min-height: 64px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; text-align: left; cursor: pointer; border: 1px solid {{ t.none.bc }}; box-shadow: {{ t.none.sh }}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Nothing at all</span><span style="font-size: 12px; color: #545B61">Just sat. It counts.</span></button>
+</div>
+</fieldset>
+
+<sc-if value="{{ isReiki }}" hint-placeholder-val="{{ true }}">
+<div role="group" aria-label="Reiki role" style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 500; color: #3E454B">Your role</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #E3E6E3; border-radius: 12px">
+<button type="button" aria-pressed="{{ r.given.on }}" onClick="{{ r.given.pick }}" style="min-height: 44px; border: 0; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; background: {{ r.given.bg }}">Gave it</button>
+<button type="button" aria-pressed="{{ r.recv.on }}" onClick="{{ r.recv.pick }}" style="min-height: 44px; border: 0; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; background: {{ r.recv.bg }}">Received it</button>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #3E454B">Tagged sessions let Trends compare the next morning's HRV with nights that had no session.</p>
+</div>
+</sc-if>
+<sc-if value="{{ isRead }}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #3E454B">Phone and tablet reading isn't stillness. It's logged in the <a href="Reading.dc.html">Reading log</a> and counts as screen time.</p>
+</sc-if>
+
+<section aria-label="Duration" style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 15px; font-weight: 600">Duration</span>
+<div style="display: grid; grid-template-columns: 52px 1fr 52px; gap: 10px; align-items: center">
+<button type="button" aria-label="Five minutes less" onClick="{{ minus }}" style="height: 52px; border-radius: 12px; border: 1px solid #C9CFCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+<div style="display: flex; align-items: baseline; justify-content: center; gap: 6px"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 34px; font-weight: 500">{{ minutes }}</span><span style="font-size: 14px; color: #545B61">min</span></div>
+<button type="button" aria-label="Five minutes more" onClick="{{ plus }}" style="height: 52px; border-radius: 12px; border: 1px solid #C9CFCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="st-start" style="font-size: 13px; font-weight: 500; color: #3E454B">Started</label>
+<input id="st-start" value="3:10 PM" style="height: 48px; box-sizing: border-box; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 16px">
+</div>
+</section>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0; margin-bottom: 8px; font-size: 15px; font-weight: 600">Where was your phone?</legend>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" aria-pressed="{{ p.away.on }}" onClick="{{ p.away.pick }}" style="min-height: 48px; padding: 0 14px; border-radius: 10px; background: #FFFFFF; text-align: left; cursor: pointer; font-size: 14px; border: 1px solid {{ p.away.bc }}; box-shadow: {{ p.away.sh }}">In another room</button>
+<button type="button" aria-pressed="{{ p.near.on }}" onClick="{{ p.near.pick }}" style="min-height: 48px; padding: 0 14px; border-radius: 10px; background: #FFFFFF; text-align: left; cursor: pointer; font-size: 14px; border: 1px solid {{ p.near.bc }}; box-shadow: {{ p.near.sh }}">Nearby, silenced</button>
+<button type="button" aria-pressed="{{ p.with.on }}" onClick="{{ p.with.pick }}" style="min-height: 48px; padding: 0 14px; border-radius: 10px; background: #FFFFFF; text-align: left; cursor: pointer; font-size: 14px; border: 1px solid {{ p.with.bc }}; box-shadow: {{ p.with.sh }}">With me, sound on</button>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #3E454B">Research on phone presence suggests a nearby phone can draw attention even when silent. This field lets your own data test that.</p>
+</fieldset>
+
+<button type="button" style="min-height: 52px; border-radius: 12px; border: 0; background: #15191C; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">Save</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1140}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { type: 'reiki', role: 'given', phone: 'away', minutes: 60 };
+}
+choice(key, id) {
+const on = this.state[key] === id;
+return {
+on: on,
+bc: on ? '#15191C' : '#D9DDDA',
+sh: on ? '0 0 0 1px #15191C' : 'none',
+bg: on ? '#FFFFFF' : 'transparent',
+pick: () => this.setState({ [key]: id })
+};
+}
+renderVals() {
+const m = this.state.minutes;
+return {
+t: {
+breath: this.choice('type', 'breath'),
+med: this.choice('type', 'med'),
+reiki: this.choice('type', 'reiki'),
+walk: this.choice('type', 'walk'),
+read: this.choice('type', 'read'),
+none: this.choice('type', 'none')
+},
+r: { given: this.choice('role', 'given'), recv: this.choice('role', 'recv') },
+p: { away: this.choice('phone', 'away'), near: this.choice('phone', 'near'), with: this.choice('phone', 'with') },
+isReiki: this.state.type === 'reiki',
+isRead: this.state.type === 'read',
+minutes: m,
+minus: () => this.setState({ minutes: Math.max(5, m - 5) }),
+plus: () => this.setState({ minutes: Math.min(480, m + 5) })
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance — Exposure, manual entry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#15191C;background:#F3F4F1}
+a{color:#1F5FA8}a:hover{color:#174A84}
+input,button{font:inherit;color:inherit}
+</style>
+<style>body{display:flex;justify-content:center;padding:24px 0}</style>
+</head>
+<body>
+<!-- Static export of design/source/Exposure-Manual.dc.html. Interactive states are shown in their default. -->
+<div style="width: 390px; height: 960px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 12px 24px 32px; background: #F3F4F1; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15191C">
+<header style="display: flex; flex-direction: column; gap: 4px">
+<a href="Main.html" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 44px; font-size: 15px; font-weight: 500; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Brief</a>
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.1">Digital Exposure</h1>
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; color: #545B61">THU · SEP 24</span>
+</div>
+</header>
+
+<nav aria-label="Entry method" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; background: #E3E6E3; border-radius: 12px">
+<a href="Exposure-Screenshot.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 9px; color: #3E454B; text-decoration: none; font-size: 14px; font-weight: 500">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"></rect><path d="M9 7h6M9 11h6M9 15h3"></path></svg>Screenshot</a>
+<a href="Exposure-Manual.html" aria-current="page" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 9px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(21,25,28,0.12); color: #15191C; text-decoration: none; font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Manual</a>
+</nav>
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid #D9DDDA; border-radius: 12px; background: #FFFFFF">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3E454B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; color: #545B61">SOURCE · MANUAL</span>
+<span style="font-size: 13px; color: #3E454B">Manual entries are marked as such in Trends.</span>
+</div>
+</div>
+
+<section aria-label="Totals" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 500; color: #3E454B">Total screen time</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input placeholder="0" aria-label="Hours" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">h</span></label>
+<label style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input placeholder="00" aria-label="Minutes" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">m</span></label>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="m-pickups" style="font-size: 13px; font-weight: 500; color: #3E454B">Pickups <span style="font-weight: 400; color: #545B61">· optional</span></label>
+<input id="m-pickups" placeholder="—" inputmode="numeric" style="height: 48px; box-sizing: border-box; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; background: #FFFFFF; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px">
+</div>
+</section>
+
+<section aria-label="Categories" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Minutes by category <span style="font-weight: 400; font-size: 13px; color: #545B61">· optional</span></h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="m-social" style="font-size: 12px; color: #3E454B">Social</label><input id="m-social" placeholder="0" inputmode="numeric" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 12px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 17px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="m-ent" style="font-size: 12px; color: #3E454B">Entertainment</label><input id="m-ent" placeholder="0" inputmode="numeric" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 12px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 17px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="m-prod" style="font-size: 12px; color: #3E454B">Productivity</label><input id="m-prod" placeholder="0" inputmode="numeric" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 12px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 17px"></div>
+</div>
+</section>
+
+<section aria-label="Top apps" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Top apps <span style="font-weight: 400; font-size: 13px; color: #545B61">· optional</span></h2>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 84px 52px; gap: 8px; align-items: end">
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="m-app" style="font-size: 12px; color: #3E454B">App</label><input id="m-app" placeholder="e.g. Instagram" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 12px; font-size: 15px"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="m-app-min" style="font-size: 12px; color: #3E454B">Minutes</label><input id="m-app-min" placeholder="0" inputmode="numeric" style="height: 48px; box-sizing: border-box; width: 100%; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 12px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 17px"></div>
+<button type="button" aria-label="Add app" style="height: 48px; border-radius: 10px; border: 1px solid #15191C; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" style="min-height: 52px; border-radius: 12px; border: 0; background: #15191C; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">Save</button>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #545B61; text-align: center">Only total screen time is required.</p>
+</div>
+</div>
+</body>
+</html>

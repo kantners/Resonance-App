@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.env.local
+.DS_Store
+ios/App/Pods/
+android/.gradle/
+android/app/build/
+
+# local SQLite leftover; app uses Postgres (DATABASE_URL)
+wellness.db
+
+# local snapshots
+*.zip

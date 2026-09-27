@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resonance — Sleep entry</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,500;6..72,600&amp;display=swap">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#15191C;background:#F3F4F1}
+a{color:#1F5FA8}a:hover{color:#174A84}
+input,textarea,button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 800px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 12px 24px 32px; background: #F3F4F1; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15191C">
+<header style="display: flex; flex-direction: column; gap: 4px">
+<a href="Main.dc.html" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 44px; font-size: 15px; font-weight: 500; text-decoration: none">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Brief</a>
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.1">Sleep</h1>
+<span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; color: #545B61">NIGHT OF THU · SEP 24</span>
+</div>
+</header>
+
+<section aria-label="Sleep values" style="background: #FFFFFF; border: 1px solid #D9DDDA; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 500; color: #3E454B">Time asleep</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input value="6" aria-label="Hours asleep" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">h</span></label>
+<label style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input value="48" aria-label="Minutes asleep" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">m</span></label>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="s-score" style="font-size: 13px; font-weight: 500; color: #3E454B">Sleep score</label>
+<div style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input id="s-score" value="71" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">/ 100</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="s-hrv" style="font-size: 13px; font-weight: 500; color: #3E454B">HRV</label>
+<div style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input id="s-hrv" value="42" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">ms</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="s-rhr" style="font-size: 13px; font-weight: 500; color: #3E454B">Resting HR</label>
+<div style="display: flex; align-items: center; height: 48px; border: 1px solid #C9CFCB; border-radius: 10px; padding: 0 14px; gap: 6px"><input id="s-rhr" value="58" inputmode="numeric" style="width: 100%; border: 0; outline: none; background: transparent; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 18px"><span style="font-size: 13px; color: #545B61">bpm</span></div>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.45; color: #3E454B">Enter HRV exactly as your device reports it. Devices measure it differently, so Resonance compares you only to your own baseline, never to population norms.</p>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="s-notes" style="font-size: 15px; font-weight: 600">Notes <span style="font-weight: 400; font-size: 13px; color: #545B61">· optional</span></label>
+<textarea id="s-notes" rows="4" placeholder="Anything that might explain the night" style="box-sizing: border-box; border: 1px solid #C9CFCB; border-radius: 10px; padding: 12px 14px; background: #FFFFFF; font-size: 15px; line-height: 1.45; resize: none"></textarea>
+</div>
+
+<button type="button" style="min-height: 52px; border-radius: 12px; border: 0; background: #15191C; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">Save night</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

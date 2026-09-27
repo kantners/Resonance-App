@@ -1,0 +1,159 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Consent.dc.html": {
+      "h": 1620,
+      "title": "8a · Client consent",
+      "w": 390,
+      "x": 0,
+      "y": 4420
+    },
+    "Exposure-Manual.dc.html": {
+      "h": 960,
+      "title": "2b · Digital Exposure — Manual",
+      "w": 390,
+      "x": 470,
+      "y": 2700
+    },
+    "Exposure-Screenshot.dc.html": {
+      "h": 1300,
+      "title": "2a · Digital Exposure — Screenshot",
+      "w": 390,
+      "x": 0,
+      "y": 2700
+    },
+    "Fasting.dc.html": {
+      "h": 900,
+      "title": "4b · Fasting entry",
+      "w": 390,
+      "x": 1880,
+      "y": 2700
+    },
+    "Main.dc.html": {
+      "h": 1640,
+      "title": "1 · Daily Brief",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Morning-Check.dc.html": {
+      "h": 860,
+      "title": "7 · Morning reading",
+      "w": 390,
+      "x": 2820,
+      "y": 2700
+    },
+    "Quiet.dc.html": {
+      "h": 1180,
+      "title": "1c · The missing quiet",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Reading.dc.html": {
+      "h": 1000,
+      "is_interactive": true,
+      "title": "3 · Reading log",
+      "w": 390,
+      "x": 940,
+      "y": 2700
+    },
+    "Recovery-Rule.dc.html": {
+      "h": 2280,
+      "title": "1b · How the Brief reads you",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Session.dc.html": {
+      "h": 1760,
+      "title": "8b · Session record (practitioner)",
+      "w": 390,
+      "x": 470,
+      "y": 4420
+    },
+    "Sleep.dc.html": {
+      "h": 800,
+      "title": "4a · Sleep entry",
+      "w": 390,
+      "x": 1410,
+      "y": 2700
+    },
+    "Stillness.dc.html": {
+      "h": 1140,
+      "is_interactive": true,
+      "title": "6 · Stillness log",
+      "w": 390,
+      "x": 2350,
+      "y": 2700
+    },
+    "Study.dc.html": {
+      "h": 1600,
+      "title": "8c · Session Study (practitioner)",
+      "w": 390,
+      "x": 940,
+      "y": 4420
+    },
+    "Trends.dc.html": {
+      "h": 1160,
+      "is_interactive": true,
+      "title": "5 · Trends",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-25T13:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "rowLog": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Log: the inputs that feed the Brief",
+      "w": 240,
+      "x": 0,
+      "y": 2400
+    },
+    "rowRead": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Read: the daily view and the weekly proof",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "rowStudy": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Session Study: does intention matter beyond touch?",
+      "w": 240,
+      "x": 0,
+      "y": 4120
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Recovery-Rule.dc.html",
+    "Trends.dc.html",
+    "Exposure-Screenshot.dc.html",
+    "Exposure-Manual.dc.html",
+    "Reading.dc.html",
+    "Sleep.dc.html",
+    "Fasting.dc.html",
+    "Quiet.dc.html",
+    "Stillness.dc.html",
+    "Morning-Check.dc.html",
+    "Consent.dc.html",
+    "Session.dc.html",
+    "Study.dc.html"
+  ],
+  "pages": [],
+  "title": "Resonance"
+}
