@@ -46,10 +46,12 @@ npm install
 npm run dev        # API + Vite dev server on http://localhost:5000
 npm run check      # TypeScript
 npm run build      # production build into dist/
+npm run db:migrate # apply migrations/ to DATABASE_URL
+npm run db:generate # after editing shared/schema.ts: write the next migration
 npm start          # run the production build
 ```
 
-Environment variables go in `.env` (never committed): `DATABASE_URL`, `SESSION_SECRET`, `OPENAI_API_KEY`, `HRV_LOG_SCALE`.
+Environment variables go in `.env` (never committed); see `.env.example`. The schema is managed by versioned migrations in `migrations/` (never `db:push`). On Railway, the pre-deploy command is `npx drizzle-kit migrate`.
 
 The build is in progress on branch `build/layer-0`; see `handoff/BUILD_PLAN.md` for the steps. This README is updated as scripts (migrations, tests, demo data) land.
 

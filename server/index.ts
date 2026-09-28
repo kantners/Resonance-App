@@ -55,7 +55,7 @@ app.use(
     store: new PgSession({
       pool,
       tableName: "session",
-      createTableIfMissing: true,
+      createTableIfMissing: false, // the "session" table is created by migrations/
     }),
     secret: sessionSecret || randomBytes(32).toString("hex"),
     resave: false,
