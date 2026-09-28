@@ -256,7 +256,7 @@ export default function InstallPrompt() {
       <style>{CSS}</style>
       <div className="kpwa-banner" role="dialog" aria-label="Install KEWT app">
         <div className="kpwa-banner-top">
-          <img src="/kewt_icon_light.png" alt="KEWT icon" className="kpwa-icon" />
+          <img src="/icon-192x192.png" alt="Resonance icon" className="kpwa-icon" />
           <div className="kpwa-text">
             <div className="kpwa-title">
               Install <em style={{ fontStyle: "italic", color: "var(--color-primary)" }}>KEWT</em>

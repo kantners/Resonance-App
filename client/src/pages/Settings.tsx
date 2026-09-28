@@ -1025,7 +1025,7 @@ function PreferencesTab() {
     try { return (localStorage.getItem("kewt-units") as any) || "imperial"; } catch { return "imperial"; }
   });
   const [darkMode, setDarkMode] = useState(() => {
-    try { return localStorage.getItem("kewt-theme") === "dark"; } catch { return false; }
+    try { return localStorage.getItem("resonance-theme") === "dark"; } catch { return false; }
   });
   const [notifications, setNotifications] = useState(() => {
     try { return localStorage.getItem("kewt-notifs") !== "off"; } catch { return true; }
@@ -1083,7 +1083,7 @@ function PreferencesTab() {
     const next = !darkMode;
     setDarkMode(next);
     document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
-    try { localStorage.setItem("kewt-theme", next ? "dark" : "light"); } catch {}
+    try { localStorage.setItem("resonance-theme", next ? "dark" : "light"); } catch {}
   };
   const toggleNotifs = () => {
     const next = !notifications;

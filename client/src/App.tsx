@@ -41,7 +41,7 @@ function haptic(pattern: number | number[] = 8) {
 function KEWTLogo({ size = 32 }: { size?: number }) {
   return (
     <img
-      src="./bew_logo_sm.jpg"
+      src="/icon-192x192.png"
       alt="Blue Ember Wellness"
       width={size}
       height={Math.round(size * 112 / 100)}
@@ -99,7 +99,7 @@ function scrollToTop() {
 // The previous default-to-light behavior is intentionally removed.
 function resolveInitialTheme(): boolean {
   try {
-    const saved = localStorage.getItem("kewt-theme");
+    const saved = localStorage.getItem("resonance-theme");
     if (saved === "light") return false;
   } catch {}
   // Default to dark for everyone except users who explicitly chose light
@@ -339,8 +339,8 @@ function TopNav({ onMenuOpen, dark, onToggle }: { onMenuOpen: () => void; dark: 
         {/* LEFT slot: KEWT wordmark (desktop only) */}
         <div className="kewt-nav-left">
           <img
-            src={dark ? "/kewt_nav_dark.png" : "/kewt_nav_light.png"}
-            alt="KEWT"
+            src={"/icon-192x192.png"}
+            alt="Resonance"
             className="kewt-nav-wordmark"
             onClick={onWordmarkTap}
             style={{ cursor: "default" }}
@@ -364,7 +364,7 @@ function TopNav({ onMenuOpen, dark, onToggle }: { onMenuOpen: () => void; dark: 
           })}
         </nav>
         {/* Mobile: cropped wordmark — correct landscape aspect ratio */}
-        <img src={dark ? "/kewt_nav_dark.png" : "/kewt_nav_light.png"} alt="KEWT" className="kewt-mobile-logo" onClick={onWordmarkTap} />
+        <img src={"/icon-192x192.png"} alt="Resonance" className="kewt-mobile-logo" onClick={onWordmarkTap} />
 
         {/* RIGHT slot: logout + hamburger (desktop/tablet only) */}
         <div className="kewt-nav-right" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
@@ -383,7 +383,7 @@ function TopNav({ onMenuOpen, dark, onToggle }: { onMenuOpen: () => void; dark: 
 
       {/* ── Brand bar: hidden on desktop (wordmark now in nav), kept for tablet/mobile spacing ── */}
       <div className="kewt-brand-bar kewt-brand-bar--desktop-hidden" onClick={onReloadTap}>
-        <img src={dark ? "/kewt_wordmark_dark.jpg" : "/kewt_wordmark_light.jpg"} alt="KEWT" className="kewt-brand-bar-logo" />
+        <img src={"/icon-192x192.png"} alt="Resonance" className="kewt-brand-bar-logo" />
         <div className="kewt-brand-bar-text">
           <span className="kewt-brand-bar-namesake">Kinetic Endurance Wellness Tracking</span>
           <span className="kewt-brand-bar-tagline">Breathe. Reset. Return.</span>
@@ -1318,7 +1318,7 @@ function AppShell() {
   const toggleDark = () => {
     const next = dark ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("kewt-theme", next); } catch {}
+    try { localStorage.setItem("resonance-theme", next); } catch {}
     setDark(!dark);
   };
   const [location, navigate] = useHashLocation();
@@ -1590,8 +1590,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         <div className={`kewt-splash-bloom${exiting ? " kewt-splash-bloom--active" : ""}`} />
         {/* Logo — zooms in with elastic snap, glassy dissolve on exit */}
         <img
-          src="/kewt_nav_light.png"
-          alt="KEWT"
+          src="/icon-192x192.png"
+          alt="Resonance"
           className={`kewt-splash-logo${exiting ? " kewt-splash-logo--exit" : ""}`}
           style={{ width: 240, objectFit: "contain", display: "block" }}
         />

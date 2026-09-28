@@ -1,27 +1,22 @@
 {
-  "name": "KEWT — Kinetic Endurance Wellness Tracking",
-  "short_name": "KEWT",
-  "description": "Your integrated wellness operating system. Training, sleep, nutrition, breathwork — one nervous system.",
+  "name": "Resonance",
+  "short_name": "Resonance",
+  "description": "Your HRV and resting heart rate, compared only with your own recent nights, alongside screen time and the stillness you choose.",
   "start_url": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait",
-  "background_color": "#faf9f6",
-  "theme_color": "#065f46",
-  "categories": ["health", "fitness", "lifestyle"],
-  "screenshots": [
-    { "src": "/splash-1125x2436.png", "sizes": "1125x2436", "type": "image/png", "form_factor": "narrow" },
-    { "src": "/splash-2048x2732.png", "sizes": "2048x2732", "type": "image/png", "form_factor": "wide" }
-  ],
+  "background_color": "#F3F4F1",
+  "theme_color": "#F3F4F1",
+  "categories": ["health", "lifestyle"],
   "icons": [
-    { "src": "/icon-72x72.png",      "sizes": "72x72",     "type": "image/png" },
-    { "src": "/icon-96x96.png",      "sizes": "96x96",     "type": "image/png" },
-    { "src": "/icon-128x128.png",    "sizes": "128x128",   "type": "image/png" },
-    { "src": "/icon-144x144.png",    "sizes": "144x144",   "type": "image/png" },
-    { "src": "/icon-152x152.png",    "sizes": "152x152",   "type": "image/png" },
-    { "src": "/icon-192x192.png",    "sizes": "192x192",   "type": "image/png", "purpose": "any" },
-    { "src": "/icon-384x384.png",    "sizes": "384x384",   "type": "image/png" },
-    { "src": "/icon-512x512.png",    "sizes": "512x512",   "type": "image/png", "purpose": "any" },
-    { "src": "/icon-maskable-512.png","sizes": "512x512",  "type": "image/png", "purpose": "maskable" }
+    { "src": "/icon-72x72.png",       "sizes": "72x72",   "type": "image/png" },
+    { "src": "/icon-96x96.png",       "sizes": "96x96",   "type": "image/png" },
+    { "src": "/icon-128x128.png",     "sizes": "128x128", "type": "image/png" },
+    { "src": "/icon-144x144.png",     "sizes": "144x144", "type": "image/png" },
+    { "src": "/icon-152x152.png",     "sizes": "152x152", "type": "image/png" },
+    { "src": "/icon-192x192.png",     "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-384x384.png",     "sizes": "384x384", "type": "image/png" },
+    { "src": "/icon-512x512.png",     "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png","sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

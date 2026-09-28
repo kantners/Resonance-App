@@ -1,8 +1,11 @@
 {
-  "name": "rest-express",
-  "version": "1.0.0",
-  "license": "MIT",
+  "name": "resonance",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
@@ -127,9 +130,5 @@
     "drizzle-kit": {
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
     }
-  },
-  "capacitor": {
-    "appId": "com.blueemberwellness.kewt",
-    "appName": "KEWT"
   }
 }
