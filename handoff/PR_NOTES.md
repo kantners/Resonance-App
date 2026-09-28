@@ -19,6 +19,17 @@
   - The `session` table is defined in the schema, so the migration creates it; `createTableIfMissing` is off.
   - `drizzle.config.ts` only requires `DATABASE_URL` for commands that connect.
   - Verified: `migrations/0000_init.sql` applies cleanly to PGlite (embedded Postgres, run from a scratch folder, not a project dependency), with the unique constraint and cascade deletes smoke-tested.
+- **Step 6 (rule engine): HANDOFF interpretations.** Please check these.
+  - **W is the 7 calendar nights ending last night, counting the logged ones.** §3.2 says "the last 7 logged nights", but under that reading `|W| ≥ 5` could never bind (anyone with 19+ nights always has 7 logged nights), and amendment B7's "6 of 7 nights" would be impossible. B stays "the 14 logged nights before W".
+  - **A night's state is judged against the ranges as they stood that morning**, not today's ranges, so a stored night never changes state afterwards. `consecutiveNightsOut` and "nights in range, last 30" use those per-night states.
+  - **"Consecutive" means calendar-consecutive:** a night with no HRV breaks the run.
+  - **"n / logged" counts only nights that could be judged** (nights that had a full baseline that morning). Nights logged while the baseline was still building aren't counted as out of range.
+  - **While the baseline is building,** `nightState` is stored as `no_data` and the escalation level is 0.
+  - **Level 2 names a likely pattern** ("Both followed high screen-time days") only when every out-of-range night followed a high-exposure day (§3.6 threshold). The HANDOFF's example ("90+ minutes of screen time after 9 PM") needs per-evening minutes, which Layer 0 doesn't capture.
+  - **The pattern callout's "last 28 days"** is the 28 days ending yesterday, and needs at least 7 logged exposure days.
+  - **Long game:** both baselines must come from the same HRV source and device. After a device change, the long game waits until 98 comparable nights exist again.
+  - **Study analysis on the ln scale** (the protocol default) reports effects as a percent change (for example "+5.2%"). The canvas shows ms, which is the linear scale.
+  - **Log-scale ranges:** with the synthetic fixture baseline (HRV 48 ± 5), the log path gives 45.3–50.3 against the linear 45.5–50.5. The plan's "about 45.6–50.7" was an estimate; the real shift depends on the data.
 - **Standing rule (Mark, September 28):** all colors and fonts go through semantic design tokens (CSS variables in `index.css`, mapped in Tailwind), with no hex codes in components, so the palette is a single-file swap. Login.tsx and the placeholder Home get converted in step 9.
 
 ## Environment limits
