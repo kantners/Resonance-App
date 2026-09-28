@@ -44,7 +44,8 @@ Requires Node 24 and a Postgres database of its own.
 ```
 npm install
 npm run dev        # API + Vite dev server on http://localhost:5000
-npm run check      # TypeScript
+npm run check      # TypeScript (app and tests)
+npm test           # Vitest: rule engine, HANDOFF §7 fixtures, copy lint
 npm run build      # production build into dist/
 npm run db:migrate # apply migrations/ to DATABASE_URL
 npm run db:generate # after editing shared/schema.ts: write the next migration

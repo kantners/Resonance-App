@@ -30,6 +30,11 @@
   - **Long game:** both baselines must come from the same HRV source and device. After a device change, the long game waits until 98 comparable nights exist again.
   - **Study analysis on the ln scale** (the protocol default) reports effects as a percent change (for example "+5.2%"). The canvas shows ms, which is the linear scale.
   - **Log-scale ranges:** with the synthetic fixture baseline (HRV 48 ± 5), the log path gives 45.3–50.3 against the linear 45.5–50.5. The plan's "about 45.6–50.7" was an estimate; the real shift depends on the data.
+- **Step 7 (tests):**
+  - The route-level tests (409 before the pre-reading, client and practitioner concealment, the 401 sweep, demo/real enrollment, the `/api/health` shape) are written together with the routes in step 8, because they can't run before those routes exist. Everything else in the plan's step 7 is in this step.
+  - The copy lint scans string literals and JSX text only (not identifiers or comments), and has a self-test that proves it catches banned wording.
+  - `tsconfig` now typechecks the tests as well.
+  - CI moved up from step 11 to step 7, so it guards every later push.
 - **Standing rule (Mark, September 28):** all colors and fonts go through semantic design tokens (CSS variables in `index.css`, mapped in Tailwind), with no hex codes in components, so the palette is a single-file swap. Login.tsx and the placeholder Home get converted in step 9.
 
 ## Environment limits
