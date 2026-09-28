@@ -6,9 +6,14 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./storage";
+import { randomBytes } from "crypto";
+
+const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
-app.set("trust proxy", 1); // Required for secure cookies behind Railway's proxy
+// Railway terminates TLS at its proxy; trust one hop so secure cookies and
+// req.ip (used by the rate limiter) work. Not trusted in development.
+if (isProduction) app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -37,6 +42,14 @@ app.use(express.urlencoded({ extended: false }));
 // ── Session middleware (Postgres-backed) ──────────────────────────────────────
 const PgSession = connectPgSimple(session);
 
+// SESSION_SECRET is required in production. In development a random
+// per-process secret is used (sessions reset on restart). Never a fixed
+// fallback string.
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && isProduction) {
+  throw new Error("SESSION_SECRET is not set. It is required in production.");
+}
+
 app.use(
   session({
     store: new PgSession({
@@ -44,14 +57,14 @@ app.use(
       tableName: "session",
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || "kewt-dev-secret-change-in-prod",
+    secret: sessionSecret || randomBytes(32).toString("hex"),
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "lax",
     },
   }),
 );
@@ -69,22 +82,13 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
+  // Method, path, status and timing only. Response bodies are never logged:
+  // they contain personal health data.
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -96,7 +100,8 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Don't echo internal error details (e.g. database errors) to clients.
+    const message = status < 500 ? (err.message || "Request error") : "Internal Server Error";
     console.error("Internal Server Error:", err);
     if (res.headersSent) return next(err);
     return res.status(status).json({ message });
@@ -110,7 +115,7 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
+  httpServer.listen({ port, host: "0.0.0.0" }, () => {
     log(`serving on port ${port}`);
   });
 })();

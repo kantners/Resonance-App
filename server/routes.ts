@@ -7,6 +7,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import bcrypt from "bcryptjs";
+import { authRateLimit } from "./middleware/rateLimit";
 
 const upload = multer({ dest: path.join(os.tmpdir(), "resonance-uploads") });
 
@@ -25,7 +26,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── Auth routes (public) ──────────────────────────────────────────────────
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", authRateLimit, async (req, res) => {
     try {
       const { email, password, firstName } = req.body as { email: string; password: string; firstName?: string };
       if (!email || !password) return res.status(400).json({ error: "Email and password required" });
@@ -41,7 +42,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", authRateLimit, async (req, res) => {
     try {
       const { email, password } = req.body as { email: string; password: string };
       if (!email || !password) return res.status(400).json({ error: "Email and password required" });
