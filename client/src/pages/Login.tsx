@@ -45,34 +45,28 @@ export default function LoginPage() {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "var(--color-bg, #faf9f6)",
+      background: "#F3F4F1",
       padding: "1.5rem",
     }}>
       {/* Brand */}
       <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
         <div style={{
-          fontSize: "2.25rem",
-          fontWeight: 800,
-          letterSpacing: "-0.03em",
-          fontStyle: "italic",
-          transform: "skewX(-13deg)",
-          display: "inline-block",
-          color: "var(--color-primary, #065f46)",
+          fontFamily: "'Newsreader', Georgia, serif",
+          fontSize: "2.5rem",
+          fontWeight: 500,
+          color: "#15191C",
           marginBottom: "0.25rem",
         }}>
-          KEWT
+          Resonance
         </div>
         <div style={{
           fontSize: "0.8125rem",
-          color: "var(--color-muted, #6b7280)",
+          color: "#5A6168",
           fontWeight: 500,
           letterSpacing: "0.05em",
           textTransform: "uppercase",
         }}>
-          by Blue Ember Wellness
-        </div>
-        <div style={{ fontSize: "0.875rem", color: "var(--color-ember, #f59e0b)", marginTop: "0.5rem", fontStyle: "italic" }}>
-          Breathe. Reset. Return.
+          Blue Ember Wellness
         </div>
       </div>
 
@@ -102,7 +96,7 @@ export default function LoginPage() {
                 fontWeight: 600,
                 transition: "all 0.15s",
                 background: mode === m ? "white" : "transparent",
-                color: mode === m ? "var(--color-primary, #065f46)" : "#6b7280",
+                color: mode === m ? "var(--color-primary, #15191C)" : "#6b7280",
                 boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
               }}
             >
@@ -164,7 +158,7 @@ export default function LoginPage() {
               padding: "0.75rem",
               borderRadius: "0.5rem",
               border: "none",
-              background: "var(--color-primary, #065f46)",
+              background: "var(--color-primary, #15191C)",
               color: "white",
               fontSize: "1rem",
               fontWeight: 700,
@@ -179,8 +173,8 @@ export default function LoginPage() {
 
         {mode === "login" && (
           <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.8125rem", color: "var(--color-text-faint)" }}>
-            New to <span style={{ fontStyle: "italic", fontWeight: 700, color: "var(--color-primary, #065f46)" }}>KEWT</span>?{" "}
-            <button onClick={() => setMode("register")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary, #065f46)", fontWeight: 600, fontSize: "0.8125rem" }}>
+            New to Resonance?{" "}
+            <button onClick={() => setMode("register")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary, #15191C)", fontWeight: 600, fontSize: "0.8125rem" }}>
               Create an account
             </button>
           </p>
