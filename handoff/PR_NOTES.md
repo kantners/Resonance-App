@@ -14,7 +14,8 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
   - the allocation hash includes a secret nonce (A1)
   - W counts calendar nights (Step 6 below)
 - **Decisions to confirm:** the Deck study 3 contrasts (C−A primary, C−B secondary), and the `gpt-4o-mini` evaluation on real screenshots before relying on it.
-- **Not verified locally:** `docker build` (no Docker on the build machine). CI covers `check`, `test` and `build` on Node 24.
+- **Not verified locally:** `docker build` (no Docker on the build machine). CI covers `check`, `test` and `build` on Node 24, and a `docker` job builds the production image (never pushed) and checks it has `dist/`, `migrations/`, `drizzle.config.ts` and `drizzle-kit`, and runs as `node`.
+- **Deploying:** `handoff/DEPLOY_RAILWAY.md` (private staging: services, variables, pre-deploy, health check, first login, 401/429 checks, and what must be true before real clients).
 
 # PR notes (collected during the build)
 
@@ -163,6 +164,15 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
 - **Overnight values carry no posture:** HRV typed on the Sleep screen or read from a screenshot sets `hrv_posture` to null and clears the flag. Nights without a posture never count as a posture change, so mixing overnight values with morning readings from the same device doesn't restart anything.
 - **Rule version bumped to `2026.09-r3`,** because the rules now give different results for flagged nights and stored labels are traced to the version (B5). The HANDOFF names `r2`. Previously stored `daily_status` rows stay as they are; new rows use r3. So for the first week after deploy, "Recovering" only sees labels computed under r3.
 - **Tests:** 9 rule tests (`posture.test.ts`): week and baseline exclusion, off-posture last night, restart on a posture change, overnight values neutral, the pattern, the association and the long game. Also a route test for the set-once flow, flagging, no overwrite, Settings validation and the Sleep-screen reset. Mutation check: counting flagged nights again fails 5 of the 9 rule tests.
+
+## Private staging on Railway (Mark, September 29)
+- **Registration lock:** `REGISTRATION_OPEN` (default closed when `NODE_ENV=production`, open otherwise; only an explicit true/false value overrides) and `REGISTRATION_ALLOWLIST` (comma-separated, case-insensitive).
+  - While closed, `POST /api/auth/register` returns `403 {"error":"Registration is closed."}` unless the email is listed. Login is unaffected.
+  - Parsed once at startup (`server/config.ts`), logged as "registration open/closed (N allowlisted)", and passed to the routes as a dependency. The route tests run with it open.
+  - `.env.example` leaves `REGISTRATION_OPEN` empty, so a copied local `.env` keeps registration open; the deploy guide sets it explicitly to false.
+  - Tests: route tests for open, closed (403 and no account created) and allowlisted, plus login while closed; unit tests for the defaults and allowlist parsing. Mutation check: removing the lock fails 2 route tests.
+- **CI `docker` job:** builds the Dockerfile with Buildx (`push: false`), then checks the image for what Railway's pre-deploy (`npx drizzle-kit migrate`) and start commands need, and that it runs as `node`.
+- **`handoff/DEPLOY_RAILWAY.md`:** the deploy guide.
 
 ## Environment limits
 - There's no Docker on the build machine, so `docker build` isn't run locally; CI and Railway cover the build.

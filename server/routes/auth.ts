@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { User } from "@shared/schema";
 import { zHrvSource, zPosture } from "@shared/schema";
 import { badRequest, conflict, HttpError, requireAuth, userId } from "../http";
+import { mayRegister } from "../config";
 import { AUTH_RATE_LIMIT, createRateLimiter } from "../middleware/rateLimit";
 import { UniqueViolation } from "../storage/types";
 import type { MeResponse } from "@shared/api";
@@ -63,6 +64,8 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
   // ── Public ────────────────────────────────────────────────────────────────
   app.post("/api/auth/register", authRateLimit, async (req, res) => {
     const body = zRegister.parse(req.body);
+    // Private deployments: closed unless the email is on REGISTRATION_ALLOWLIST.
+    if (!mayRegister(deps.registration, body.email)) throw new HttpError(403, "Registration is closed.");
     const passwordHash = await bcrypt.hash(body.password, 10);
     let user: User;
     try {

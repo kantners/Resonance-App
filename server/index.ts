@@ -4,6 +4,7 @@ import { randomBytes, randomInt } from "crypto";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { createApp } from "./app";
+import { parseRegistration } from "./config";
 import { db, pool } from "./db";
 import { parseHrvLogScale } from "./rules";
 import { serveStatic } from "./static";
@@ -19,6 +20,8 @@ export function log(message: string, source = "express") {
 
 const PgSession = connectPgSimple(session);
 const sessionSecret = process.env.SESSION_SECRET;
+const registration = parseRegistration(process.env, isProduction);
+log(`registration ${registration.open ? "open" : `closed (${registration.allowlist.length} allowlisted)`}`);
 
 const app = createApp({
   isProduction,
@@ -33,6 +36,7 @@ const app = createApp({
     randomInt: n => randomInt(n),
     randomHex: bytes => randomBytes(bytes).toString("hex"),
     vision: process.env.OPENAI_API_KEY ? createOpenAiVision(process.env.OPENAI_API_KEY) : undefined,
+    registration,
   },
 });
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { STUDY_TEMPLATES } from "@shared/studyTemplates";
 import { addDays, verifyAllocation, RULE_VERSION } from "../rules";
+import type { RegistrationPolicy } from "../config";
 import { PUBLIC_API_ROUTES } from "../routes";
 import { allKeys, Client, startHarness, type Harness } from "./harness";
 
@@ -620,5 +621,46 @@ describe("Session Study", () => {
     const c = new Client(h.base);
     await c.register("client-consent@example.com");
     expect((await c.post("/api/study/enrollments", { protocolId: protocol.id, consentVersion: "0", touchProfile: { back: "hands_on" } })).status).toBe(409);
+  });
+});
+
+// ─── Registration lock (private staging) ────────────────────────────────────
+describe("registration lock (REGISTRATION_OPEN / REGISTRATION_ALLOWLIST)", () => {
+  const body = (email: string) => ({ email, password: "correct-horse-battery" });
+
+  async function withPolicy(registration: RegistrationPolicy, run: (c: Client, hh: Harness) => Promise<void>) {
+    const hh = await startHarness({ registration });
+    try { await run(new Client(hh.base), hh); } finally { await hh.close(); }
+  }
+
+  it("open: anyone can register", async () => {
+    await withPolicy({ open: true, allowlist: [] }, async c => {
+      expect((await c.post("/api/auth/register", body("anyone@example.com"))).status).toBe(200);
+    });
+  });
+
+  it("closed: 403 and no account is created", async () => {
+    await withPolicy({ open: false, allowlist: [] }, async (c, hh) => {
+      const r = await c.post("/api/auth/register", body("stranger@example.com"));
+      expect(r.status).toBe(403);
+      expect(r.body.error).toBe("Registration is closed.");
+      expect(await hh.storage.getUserByEmail("stranger@example.com")).toBeFalsy();
+      expect((await c.get("/api/me")).status).toBe(401);      // not signed in either
+    });
+  });
+
+  it("closed with an allowlist: only listed emails (case-insensitive) can register", async () => {
+    await withPolicy({ open: false, allowlist: ["owner@example.com"] }, async (c, hh) => {
+      expect((await c.post("/api/auth/register", body("Owner@Example.com"))).status).toBe(200);
+      expect((await new Client(hh.base).post("/api/auth/register", body("other@example.com"))).status).toBe(403);
+    });
+  });
+
+  it("closed doesn't block login for existing accounts", async () => {
+    await withPolicy({ open: false, allowlist: ["owner@example.com"] }, async c => {
+      await c.post("/api/auth/register", body("owner@example.com"));
+      await c.post("/api/auth/logout");
+      expect((await c.post("/api/auth/login", body("owner@example.com"))).status).toBe(200);
+    });
   });
 });

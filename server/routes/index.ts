@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import type { RegistrationPolicy } from "../config";
 import { requireAuth } from "../http";
 import { RULE_VERSION } from "../rules";
 import type { IStorage } from "../storage/types";
@@ -18,6 +19,7 @@ export interface RouteDeps {
   randomHex: (bytes: number) => string;
   vision?: VisionFn;                   // absent when OPENAI_API_KEY isn't set
   authRateLimit?: { max: number; windowMs: number };   // defaults to 10 per 15 minutes per IP
+  registration?: RegistrationPolicy;   // REGISTRATION_OPEN / _ALLOWLIST; absent = open (tests, local dev)
 }
 
 export const PUBLIC_API_ROUTES = [
