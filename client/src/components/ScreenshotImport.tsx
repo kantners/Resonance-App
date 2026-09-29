@@ -3,104 +3,28 @@ import { Camera, CheckCircle, XCircle, Loader2, Upload, RefreshCw, Plus, X } fro
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type DataType = "sleep" | "activity" | "body_comp";
+// The Screen Time / Digital Wellbeing type is added with the exposure routes.
+type DataType = "sleep";
 
+// Only the fields Resonance uses: the Brief's inputs plus sleep context.
 interface SleepData {
   date: string | null;
-  sleep_score: number | null;
   hours: number | null;
-  quality: number | null;
-  deep_min: number | null;
-  light_min: number | null;
-  rem_min: number | null;
-  awake_min: number | null;
-  resting_hr: number | null;
-  avg_overnight_hr: number | null;
+  sleep_score: number | null;
   hrv: number | null;
-  hrv_status: string | null;
-  spo2_avg: number | null;
-  spo2_low: number | null;
-  respiration_avg: number | null;
-  respiration_low: number | null;
-  stress: number | null;
-  body_battery_change: number | null;
-  restless_moments: number | null;
-  fell_asleep: string | null;
-  woke_up: string | null;
-  notes: string | null;
+  resting_hr: number | null;
 }
-
-interface ActivityData {
-  date: string | null;
-  modality: string | null;
-  duration_min: number | null;
-  distance_miles: number | null;
-  elevation_ft: number | null;
-  avg_hr: number | null;
-  est_cals_burned: number | null;
-  intensity: string | null;
-  perceived_effort: number | null;
-  environment: string | null;
-  notes: string | null;
-}
-
-type ParsedData = SleepData | ActivityData;
 
 type Phase = "idle" | "scanning" | "review" | "saving" | "done" | "error";
 
 // ─── Field config ─────────────────────────────────────────────────────────────
 
 const SLEEP_FIELDS: { key: keyof SleepData; label: string; type: "text" | "number" }[] = [
-  { key: "date", label: "Date", type: "text" },
-  { key: "sleep_score", label: "Sleep Score", type: "number" },
-  { key: "hours", label: "Total Hours", type: "number" },
-  { key: "deep_min", label: "Deep (min)", type: "number" },
-  { key: "light_min", label: "Light (min)", type: "number" },
-  { key: "rem_min", label: "REM (min)", type: "number" },
-  { key: "awake_min", label: "Awake (min)", type: "number" },
-  { key: "resting_hr", label: "Resting HR", type: "number" },
-  { key: "avg_overnight_hr", label: "Overnight HR", type: "number" },
+  { key: "date", label: "Wake date", type: "text" },
+  { key: "hours", label: "Time asleep (h)", type: "number" },
+  { key: "sleep_score", label: "Sleep score", type: "number" },
   { key: "hrv", label: "HRV (ms)", type: "number" },
-  { key: "hrv_status", label: "HRV Status", type: "text" },
-  { key: "spo2_avg", label: "SpO2 Avg %", type: "number" },
-  { key: "spo2_low", label: "SpO2 Low %", type: "number" },
-  { key: "respiration_avg", label: "Resp Avg (brpm)", type: "number" },
-  { key: "respiration_low", label: "Resp Low (brpm)", type: "number" },
-  { key: "stress", label: "Stress Avg", type: "number" },
-  { key: "body_battery_change", label: "Body Battery", type: "number" },
-  { key: "restless_moments", label: "Restless Moments", type: "number" },
-  { key: "fell_asleep", label: "Fell Asleep", type: "text" },
-  { key: "woke_up", label: "Woke Up", type: "text" },
-];
-
-const ACTIVITY_FIELDS: { key: keyof ActivityData; label: string; type: "text" | "number" }[] = [
-  { key: "date", label: "Date", type: "text" },
-  { key: "modality", label: "Activity Type", type: "text" },
-  { key: "duration_min", label: "Duration (min)", type: "number" },
-  { key: "distance_miles", label: "Distance (mi)", type: "number" },
-  { key: "elevation_ft", label: "Elevation Gain (ft)", type: "number" },
-  { key: "avg_hr", label: "Avg HR", type: "number" },
-  { key: "est_cals_burned", label: "Calories", type: "number" },
-  { key: "intensity", label: "Intensity", type: "text" },
-  { key: "perceived_effort", label: "Perceived Effort (1-10)", type: "number" },
-  { key: "environment", label: "Environment", type: "text" },
-];
-
-const BODY_COMP_FIELDS: { key: string; label: string; type: "text" | "number"; unit?: string }[] = [
-  { key: "date",                label: "Date",                  type: "text" },
-  { key: "morning_weight",      label: "Weight",                type: "number", unit: "lb" },
-  { key: "body_fat_pct",        label: "Body Fat",              type: "number", unit: "%" },
-  { key: "muscle_mass_lb",      label: "Muscle Mass",           type: "number", unit: "lb" },
-  { key: "body_water_pct",      label: "Body Water",            type: "number", unit: "%" },
-  { key: "bmi",                 label: "BMI",                   type: "number" },
-  { key: "skeletal_muscle_pct", label: "Skeletal Muscle Rate",  type: "number", unit: "%" },
-  { key: "subcutaneous_fat_pct",label: "Subcutaneous Fat",      type: "number", unit: "%" },
-  { key: "fat_free_lb",         label: "Fat-Free Body",         type: "number", unit: "lb" },
-  { key: "bone_mass_lb",        label: "Bone Mass",             type: "number", unit: "lb" },
-  { key: "visceral_fat",        label: "Visceral Fat (index)",  type: "number" },
-  { key: "bmr_kcal",            label: "BMR",                   type: "number", unit: "kcal" },
-  { key: "protein_pct",         label: "Protein",               type: "number", unit: "%" },
-  { key: "body_score",          label: "Body Score",            type: "number" },
+  { key: "resting_hr", label: "Resting HR", type: "number" },
 ];
 
 // Merge multiple parsed results — non-null values win, first non-null takes priority
@@ -145,6 +69,7 @@ export default function ScreenshotImport() {
   const parseFile = async (file: File): Promise<{ type: string; data: Record<string, any> }> => {
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("kind", "sleep");
 
     // 60-second timeout — OpenAI Vision can be slow
     const controller = new AbortController();
@@ -306,7 +231,7 @@ export default function ScreenshotImport() {
     }
   };
 
-  const activeFields = dataType === "sleep" ? SLEEP_FIELDS : dataType === "body_comp" ? BODY_COMP_FIELDS : ACTIVITY_FIELDS;
+  const activeFields = SLEEP_FIELDS;
   const filledCount = activeFields.filter(f => fields[f.key] != null).length;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -324,7 +249,7 @@ export default function ScreenshotImport() {
         >
           <Camera size={28} className="screenshot-dropzone-icon" />
           <p className="screenshot-dropzone-label">Upload screenshots</p>
-          <p className="screenshot-dropzone-sub">Garmin sleep, Garmin activity, or 1byone scale screens.</p>
+          <p className="screenshot-dropzone-sub">A sleep summary from your watch or ring app.</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -369,13 +294,13 @@ export default function ScreenshotImport() {
               )}
               <div>
                 <p className="screenshot-review-type">
-                  {dataType === "sleep" ? "Sleep Summary" : dataType === "body_comp" ? "Body Composition" : "Activity"} detected
+                  Sleep summary detected
                   <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "var(--color-text-faint)", fontWeight: 500 }}>
                     {filledCount}/{activeFields.length} fields
                   </span>
                 </p>
                 <p className="screenshot-review-hint">
-            {errorMsg ? <span style={{ color: "#dc2626" }}>{errorMsg}</span> : "Edit any field, then confirm to save."}
+            {errorMsg ? <span className="text-alert">{errorMsg}</span> : "Edit any field, then confirm to save."}
           </p>
               </div>
             </div>
@@ -436,7 +361,7 @@ export default function ScreenshotImport() {
       {phase === "saving" && (
         <div className="screenshot-status-card">
           <Loader2 size={18} className="screenshot-spinner" />
-          <span className="screenshot-status-text">Saving to KEWT...</span>
+          <span className="screenshot-status-text">Saving...</span>
         </div>
       )}
 
@@ -449,7 +374,7 @@ export default function ScreenshotImport() {
               {savedAction === "updated" ? "Entry updated" : "Entry saved"}
             </p>
             <p className="screenshot-review-hint">
-              {dataType === "sleep" ? "Sleep log" : dataType === "body_comp" ? "Body composition" : "Activity"} written to KEWT.
+              Sleep entry saved.
             </p>
           </div>
           <button className="screenshot-retry-btn" onClick={reset}>

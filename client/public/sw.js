@@ -1,4 +1,4 @@
-const CACHE = "kewt-v2";
+const CACHE = "resonance-v1";
 const STATIC = [
   "/",
   "/index.html",

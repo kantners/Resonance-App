@@ -1,28 +1,23 @@
 import { CapacitorConfig } from "@capacitor/cli";
 
+// Resonance is its own app: own appId, own server, nothing shared with KEWT.
+// No server.url: the native shell loads the bundled web build from webDir.
 const config: CapacitorConfig = {
-  appId: "com.blueemberwellness.kewt",
-  appName: "KEWT",
+  appId: "com.blueemberwellness.resonance",
+  appName: "Resonance",
   webDir: "dist/public",
-  server: {
-    // Points to Railway production — app loads live data over the internet
-    url: "https://kewt-app-production.up.railway.app",
-    cleartext: false,
-  },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1800,
+      launchShowDuration: 1200,
       launchAutoHide: true,
-      backgroundColor: "#faf9f6",
-      iosSpinnerStyle: "small",
-      spinnerColor: "#065f46",
+      backgroundColor: "#F3F4F1",
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: false,
     },
     StatusBar: {
       style: "LIGHT",
-      backgroundColor: "#faf9f6",
+      backgroundColor: "#F3F4F1",
       overlaysWebView: false,
     },
   },
@@ -30,11 +25,11 @@ const config: CapacitorConfig = {
     contentInset: "automatic",
     allowsLinkPreview: false,
     scrollEnabled: true,
-    backgroundColor: "#faf9f6",
+    backgroundColor: "#F3F4F1",
   },
   android: {
     allowMixedContent: false,
-    backgroundColor: "#faf9f6",
+    backgroundColor: "#F3F4F1",
   },
 };
 

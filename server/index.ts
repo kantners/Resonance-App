@@ -1,108 +1,49 @@
 import "dotenv/config";
-import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
+import { randomBytes, randomInt } from "crypto";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "./routes";
+import { createApp } from "./app";
+import { parseRegistration } from "./config";
+import { db, pool } from "./db";
+import { parseHrvLogScale } from "./rules";
 import { serveStatic } from "./static";
-import { createServer } from "http";
-import { pool } from "./storage";
+import { createDbStorage } from "./storage/db";
+import { createOpenAiVision } from "./vision";
 
-const app = express();
-app.set("trust proxy", 1); // Required for secure cookies behind Railway's proxy
-const httpServer = createServer(app);
-
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-// Extend express-session with userId
-declare module "express-session" {
-  interface SessionData {
-    userId: number;
-  }
-}
-
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
-app.use(express.urlencoded({ extended: false }));
-
-// ── Session middleware (Postgres-backed) ──────────────────────────────────────
-const PgSession = connectPgSimple(session);
-
-app.use(
-  session({
-    store: new PgSession({
-      pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || "kewt-dev-secret-change-in-prod",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    },
-  }),
-);
+const isProduction = process.env.NODE_ENV === "production";
 
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-  console.log(`${formattedTime} [${source}] ${message}`);
+  const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+  console.log(`${time} [${source}] ${message}`);
 }
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+const PgSession = connectPgSimple(session);
+const sessionSecret = process.env.SESSION_SECRET;
+const registration = parseRegistration(process.env, isProduction);
+log(`registration ${registration.open ? "open" : `closed (${registration.allowlist.length} allowlisted)`}`);
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
-    }
-  });
-
-  next();
+const app = createApp({
+  isProduction,
+  sessionSecret,
+  // The "session" table is created by migrations/.
+  sessionStore: new PgSession({ pool, tableName: "session", createTableIfMissing: false }),
+  log: line => log(line),
+  deps: {
+    storage: createDbStorage(db),
+    hrvLogScale: parseHrvLogScale(process.env.HRV_LOG_SCALE),
+    now: () => new Date(),
+    randomInt: n => randomInt(n),
+    randomHex: bytes => randomBytes(bytes).toString("hex"),
+    vision: process.env.OPENAI_API_KEY ? createOpenAiVision(process.env.OPENAI_API_KEY) : undefined,
+    registration,
+  },
 });
 
+const httpServer = createServer(app);
+
 (async () => {
-  await registerRoutes(httpServer, app);
-
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    console.error("Internal Server Error:", err);
-    if (res.headersSent) return next(err);
-    return res.status(status).json({ message });
-  });
-
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction) {
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");
@@ -110,7 +51,7 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
+  httpServer.listen({ port, host: "0.0.0.0" }, () => {
     log(`serving on port ${port}`);
   });
 })();
