@@ -119,4 +119,5 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
 - **Bug found while verifying:** after completion, the quality panel counted every scheduled visit, including visits never held ("2 of 21"). It now counts held (completed) sessions, and a route test shows the old behavior fails. The per-client deltas also skip clients with no held sessions.
 
 ## Environment limits
-- There's no local Postgres or Docker on the build machine, so `db:migrate`, `seed:demo` and `docker build` can't be run end-to-end locally. CI and Railway cover the build; the DB steps need a Postgres instance.
+- There's no Docker on the build machine, so `docker build` isn't run locally; CI and Railway cover the build.
+- There's no installed Postgres either. `db:migrate`, `seed:demo` and `npm run dev` run end-to-end against PGlite's Postgres wire-protocol server, started from a scratch folder (not a project dependency). Sep 29: fresh `drizzle-kit migrate`, then the seed reproduced the canvas numbers, then the dev server served health, demo login, the Brief (Steady · 7 of 7, 48.6 / 55.1) and the completed demo study with values unlocked.
