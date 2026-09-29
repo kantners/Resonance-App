@@ -52,6 +52,7 @@
     - 82 tests pass, including the route tests for the §7 route fixtures, A1–A4, B5, B6, C10–C12 and the `requireAuth` sweep.
     - Mutation checks: deliberately leaking `condition` from either serializer makes the matching test fail.
     - An end-to-end run of the real server against Postgres (PGlite's wire-protocol server, from a scratch folder) passed 28 checks covering daily data, the Brief (log scale on), and the full study flow, including withdrawal and account deletion. Both migrations applied with `drizzle-kit migrate`.
+    - **Correction on that first run:** a stopped background task had left the previous server process running, so the new server failed to bind and the checks ran against the older process (same code, freshly migrated database). At Mark's request, the 28 checks were re-run from a clean start: a fresh PGlite, a fresh `drizzle-kit migrate` (16 tables, 0 users), and a freshly started server on a new port, whose own log shows it served all 55 requests. All 28 passed. Test processes are now stopped by port, not by task.
 - **Standing rule (Mark, September 28):** all colors and fonts go through semantic design tokens (CSS variables in `index.css`, mapped in Tailwind), with no hex codes in components, so the palette is a single-file swap. Login.tsx and the placeholder Home get converted in step 9.
 
 ## Environment limits
