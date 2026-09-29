@@ -36,7 +36,7 @@
   - `tsconfig` now typechecks the tests as well.
   - CI moved up from step 11 to step 7, so it guards every later push.
 - **Step 8 (routes):**
-  - **Withdrawal no longer frees the allocation row** (a gap in the plan). Deleting the enrollment would have let the next client reuse the same sequence, so withdrawing would effectively re-roll the allocation. Withdrawal now deletes the sessions, clears the touch profile and unlinks the client, but keeps an anonymised tombstone. Migration `0001` makes `study_enrollments.client_user_id` nullable with `ON DELETE SET NULL` so account deletion behaves the same way. Deleting an account withdraws all of its enrollments first.
+  - **Withdrawal no longer frees the allocation row** (a gap in the plan). Deleting the enrollment would have let the next client reuse the same sequence, so withdrawing would effectively re-roll the allocation. Withdrawal now deletes the sessions, clears the touch profile and unlinks the client, but keeps a pseudonymised tombstone. Migration `0001` makes `study_enrollments.client_user_id` nullable with `ON DELETE SET NULL` so account deletion behaves the same way. Deleting an account withdraws all of its enrollments first.
   - **Readings come only through the client route** (`PATCH /sessions/:id/client`), as HANDOFF §5 lists them. The practitioner's `PATCH` can't set readings or the guess.
   - **Session order enforced server-side:** the pre-reading can't change after the reveal, the post-reading needs the reveal, the guess needs the post-reading, and a session can't be marked complete without the post-reading. `/start` can be repeated; it returns the same condition and keeps the first reveal time. Every reveal is logged to the server log.
   - **The client's guess is stored as an arm code or `not_sure`**, so it works for any arms. The template names (`reiki`/`touch_only`/`rest`) aren't accepted. The practitioner sees the guess only once the session is complete.
@@ -57,7 +57,10 @@
 
 ## Decisions after step 8 (Mark, September 28)
 - **1 and 3 agreed:** W counts calendar nights; the allocation hash includes a nonce.
-- **2 agreed:** withdrawal keeps an anonymised allocation tombstone. The Consent text must say so. The approved sentence is in `shared/consentCopy.ts` (`CONSENT_WITHDRAWAL_ALLOCATION_NOTE`), for the Consent screen (9b): "If you leave, Resonance keeps one anonymised allocation record (your slot number only, with no readings, answers or name) so the study's random order stays balanced." Please check the wording.
+- **2 agreed:** withdrawal keeps a pseudonymised allocation tombstone. The Consent text must say so. The approved sentence (Mark, September 29) is in `shared/consentCopy.ts` (`CONSENT_WITHDRAWAL_ALLOCATION_NOTE`), for the Consent screen (9b): "If you leave, Resonance keeps one small record so the study's random order stays balanced: your study code, your place in that order, and the dates you joined and left. Your readings, answers and name are deleted, and the record is no longer linked to your Resonance account."
+  - The earlier draft said "anonymised … (your slot number only)". Both parts were inaccurate: the row also keeps the client code, the condition order, the consent version and the join and leave dates, and a study code makes it pseudonymised, not anonymous.
+  - The Settings delete-account text and the Privacy page made the same claim and now match the approved wording. Code comments say "pseudonymised".
+  - The copy lint now bans "anonymised/anonymous" (and variants) in client copy and `shared/consentCopy.ts`.
 - **4 agreed as the default:**
   - The primary and secondary contrasts are stored on the protocol, frozen at lock and printed in the methods export, the same as `analysis_scale`. Tests cover edits after lock (409) and the export text.
   - Arms can be flagged `optional` (the factorial's rest arm is). A primary contrast can't use an optional arm (400).

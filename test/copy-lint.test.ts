@@ -17,6 +17,8 @@ const BANNED: { word: RegExp; allowIn?: string[] }[] = [
   // The Recovery-Rule screen explains why Resonance has no streaks.
   { word: /\bstreaks?\b/i, allowIn: ["client/src/screens/RecoveryRule.tsx"] },
   { word: /\bbadges?\b/i },
+  // Study records are pseudonymised (a study code), not anonymous (Mark, Sep 29).
+  { word: /\banonym(i[sz](e|es|ed|ing|ation)|ous|ously|ity)\b/i },
 ];
 
 function walk(dir: string): string[] {
@@ -49,6 +51,7 @@ const files = [
   join(ROOT, "client", "index.html"),
   join(ROOT, "server", "rules", "messages.ts"),
   join(ROOT, "server", "rules", "study.ts"),
+  join(ROOT, "shared", "consentCopy.ts"),
 ];
 
 describe("copy lint", () => {
@@ -66,6 +69,7 @@ describe("copy lint", () => {
     expect(flagged(`<p>the smallest change commonly treated as meaningful</p>`)).toHaveLength(0);
     expect(flagged(`<p>Breathwork treated my anxiety</p>`)).toHaveLength(1);
     expect(flagged(`<p>A gentle treatment</p>`)).toHaveLength(1);
+    expect(flagged(`const n = "keeps one anonymised record";`)).toHaveLength(1);
     // Class names aren't copy; an apostrophe in prose doesn't swallow the markup after it.
     expect(flagged(`<span className="font-mono tracking-badge">x</span>`)).toHaveLength(0);
     expect(flagged(`<p>Each signal's range</p><span className="tracking-badge">ok</span><p>no badges here</p>`)).toHaveLength(1);

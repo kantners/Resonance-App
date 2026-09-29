@@ -341,7 +341,7 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
     res.json(out);
   });
 
-  // Withdraw and delete study data (§6). The row stays as an anonymised tombstone.
+  // Withdraw and delete study data (§6). The row stays as a pseudonymised tombstone.
   app.delete("/api/study/enrollments/:id", requireAuth, async (req, res) => {
     const e = await storage.getEnrollment(idParam(req));
     if (!e || e.clientUserId !== userId(req)) throw notFound("Enrollment not found");

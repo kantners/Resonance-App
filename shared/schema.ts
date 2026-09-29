@@ -274,7 +274,7 @@ export type StudyProtocol = typeof studyProtocols.$inferSelect;
 export const studyEnrollments = pgTable("study_enrollments", {
   id:                   serial("id").primaryKey(),
   protocolId:           integer("protocol_id").notNull().references(() => studyProtocols.id),
-  // Nulled on withdrawal or account deletion: the row stays as an anonymised
+  // Nulled on withdrawal or account deletion: the row stays as a pseudonymised
   // tombstone so its allocation row stays consumed (no re-rolling by withdrawing).
   clientUserId:         integer("client_user_id").references(() => users.id, { onDelete: "set null" }),
   clientCode:           text("client_code").notNull(),            // "C-014"

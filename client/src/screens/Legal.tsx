@@ -22,7 +22,7 @@ export function PrivacyScreen() {
       <h2>Screenshots</h2>
       <p>If you import a screenshot, the image is sent to OpenAI to read the numbers, then deleted from our server. Screen Time and Digital Wellbeing screenshots show app names and how long you used them. You check and edit the values before anything is saved. You can always enter the numbers by hand instead.</p>
       <h2>Session studies</h2>
-      <p>If you join a practitioner's study, only your on-table readings and answers are shared with the practitioner, under a client code, not your name. Your daily data is never shared. You can leave at any time; your study data is deleted, and one anonymised allocation record (your slot number only) is kept so the study's random order stays balanced.</p>
+      <p>If you join a practitioner's study, only your on-table readings and answers are shared with the practitioner, under a client code, not your name. Your daily data is never shared. You can leave at any time; your readings, answers and name are deleted. One small record is kept so the study's random order stays balanced: your study code, your place in that order, and the dates you joined and left. It is no longer linked to your Resonance account.</p>
       <h2>Deleting your data</h2>
       <p>Settings → Delete account removes your account and everything linked to it.</p>
       <h2>Not medical care</h2>

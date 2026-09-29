@@ -67,7 +67,8 @@ export default function SettingsScreen() {
         <Eyebrow>DELETE ACCOUNT</Eyebrow>
         <p className="m-0 text-13 leading-[1.45] text-ink-soft">
           Deletes your account and all your data. If you're in a session study, you're withdrawn and your study data is
-          deleted; one anonymised allocation record (your slot number only) stays so the study's random order stays balanced.
+          deleted. One small record stays so the study's random order stays balanced: your study code, your place in that
+          order, and the dates you joined and left, no longer linked to your account.
         </p>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
           autoComplete="current-password" className={input} />

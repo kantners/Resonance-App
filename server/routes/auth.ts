@@ -103,7 +103,7 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
   });
 
   // Deletes the account and all personal data (cascade). Study enrollments
-  // stay as anonymised tombstones so allocation rows stay consumed.
+  // stay as pseudonymised tombstones so allocation rows stay consumed.
   app.delete("/api/me", requireAuth, async (req, res) => {
     const { password } = z.object({ password: z.string().min(1) }).parse(req.body);
     const id = userId(req);
