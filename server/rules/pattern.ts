@@ -1,7 +1,7 @@
 // Pattern callout ("Pattern noted") and Trends association (HANDOFF §3.6).
 // Always an association, never a cause.
 import { addDays } from "./dates";
-import { type NightInput, computeBaseline } from "./baseline";
+import { type NightInput, computeBaseline, isUsableNight } from "./baseline";
 import { mean, pearson, sampleSd } from "./stats";
 
 export interface ExposureDay {
@@ -119,7 +119,7 @@ export function screenHrvAssociation(
   days: readonly ExposureDay[], nights: readonly NightInput[], loggedNights: number,
 ): Association | null {
   if (loggedNights < ASSOCIATION_MIN_NIGHTS) return null;
-  const hrvByDate = new Map(nights.filter(n => n.hrv != null).map(n => [n.date, n.hrv as number]));
+  const hrvByDate = new Map(nights.filter(isUsableNight).map(n => [n.date, n.hrv]));
   const xs: number[] = [], ys: number[] = [];
   for (const d of days) {
     const next = hrvByDate.get(addDays(d.date, 1));

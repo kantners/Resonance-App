@@ -150,6 +150,40 @@ describe("daily data", () => {
     expect((await c.post("/api/sleep", { date: "2026-02-30", hours: 7 })).status).toBe(400);
   });
 
+  it("morning posture: set once; an off-posture reading is stored and flagged, never replacing a usable one", async () => {
+    const c = new Client(h.base);
+    await c.register("posture@example.com");
+    await c.patch("/api/settings", { defaultHrvDevice: DEVICE });
+    const read = (date: string, rmssdMs: number, posture: string) => c.post("/api/morning-readings",
+      { date, takenAt: `${date}T07:00:00-04:00`, rmssdMs, heartRateBpm: 60, posture });
+
+    // No set posture yet: the first reading's posture becomes it.
+    expect((await read("2026-09-20", 48, "seated")).body.offPosture).toBe(false);
+    expect((await c.get("/api/me")).body.hrvPosture).toBe("seated");
+
+    // A face-up reading on a new night: stored, flagged on the reading and the night.
+    const off = await read("2026-09-21", 60, "face_up");
+    expect(off.body).toMatchObject({ offPosture: true, reading: { posture: "face_up", offPosture: true } });
+    expect(off.body.sleep).toMatchObject({ hrv: 60, hrvPosture: "face_up", hrvOffPosture: true });
+    const brief = await c.get("/api/brief/2026-09-21");
+    expect(brief.body.lastNight).toMatchObject({ hrv: 60, offPosture: true, hrvPosture: "face_up", state: "no_data" });
+    expect(brief.body.firstRun.nightsLogged).toBe(1);        // only the seated night counts
+
+    // Same night, seated reading first, then face-up: the usable value stays.
+    await read("2026-09-22", 47, "seated");
+    const late = await read("2026-09-22", 70, "face_up");
+    expect(late.body.offPosture).toBe(true);
+    expect(late.body.sleep).toMatchObject({ hrv: 47, hrvOffPosture: false });
+
+    // Settings: morning postures only; after a change, face-up is in posture.
+    expect((await c.patch("/api/settings", { hrvPosture: "face_down" })).status).toBe(400);
+    expect((await c.patch("/api/settings", { hrvPosture: "face_up" })).body.hrvPosture).toBe("face_up");
+    expect((await read("2026-09-23", 55, "face_up")).body.offPosture).toBe(false);
+    // An overnight HRV typed on the Sleep screen carries no posture and clears the flag.
+    const overnight = await c.post("/api/sleep", { date: "2026-09-21", hrv: 49 });
+    expect(overnight.body).toMatchObject({ hrv: 49, hrvPosture: null, hrvOffPosture: false });
+  });
+
   it("stillness rules: reiki needs a role, app reading is never stillness", async () => {
     const c = new Client(h.base);
     await c.register("still@example.com");

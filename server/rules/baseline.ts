@@ -9,6 +9,10 @@ export interface NightInput {
   rhr: number | null;        // resting HR, bpm
   hrvSource: string;         // camera | device_manual
   hrvDevice: string | null;  // device + app
+  /** Posture of the morning reading behind `hrv`; null/absent for overnight values. */
+  hrvPosture?: string | null;
+  /** The reading was off the user's set posture: stored and shown, never averaged. */
+  hrvOffPosture?: boolean;
 }
 
 /** A night that counts: it has an HRV value. Nights without HRV are skipped, never imputed. */
@@ -41,18 +45,32 @@ function sourceKey(n: NightInput): string {
   return `${n.hrvSource}|${(n.hrvDevice ?? "").trim().toLowerCase()}`;
 }
 
+/** A usable night: it has an HRV value and wasn't taken off the set posture. */
+export function isUsableNight(n: NightInput): n is LoggedNight {
+  return n.hrv != null && n.hrv > 0 && !n.hrvOffPosture;
+}
+
 /**
  * Logged nights up to and including `asOf`, oldest first, restricted to the
- * nights since the most recent change of HRV source or device: readings from
- * different devices aren't comparable, so the baseline restarts (§1).
+ * nights since the most recent change of HRV source, device or posture:
+ * readings from different devices or postures aren't comparable, so the
+ * baseline restarts (§1). Off-posture nights are left out entirely, so they
+ * never restart anything. Overnight values carry no posture and never count
+ * as a posture change.
  */
 export function comparableNights(nights: readonly NightInput[], asOf: string): LoggedNight[] {
   const logged = nights
-    .filter((n): n is LoggedNight => n.hrv != null && n.hrv > 0 && n.date <= asOf)
+    .filter((n): n is LoggedNight => isUsableNight(n) && n.date <= asOf)
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   let start = 0;
-  for (let i = 1; i < logged.length; i++) {
-    if (sourceKey(logged[i]) !== sourceKey(logged[i - 1])) start = i;
+  let lastPosture: string | null = null;
+  for (let i = 0; i < logged.length; i++) {
+    const n = logged[i];
+    if (i > 0 && sourceKey(n) !== sourceKey(logged[i - 1])) start = i;
+    if (n.hrvPosture) {
+      if (lastPosture && n.hrvPosture !== lastPosture) start = i;
+      lastPosture = n.hrvPosture;
+    }
   }
   return logged.slice(start);
 }

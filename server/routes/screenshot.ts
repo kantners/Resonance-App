@@ -122,6 +122,8 @@ export function registerScreenshotRoutes(app: Express, deps: RouteDeps) {
       hours: d.hours, sleepScore: d.sleep_score, hrv: d.hrv, restingHr: d.resting_hr,
       ...(d.hrv != null ? { hrvSource: "device_manual", hrvDevice } : {}),
     }).filter(([, v]) => v != null));
+    // A screenshot HRV is an overnight value: it carries no posture.
+    if (d.hrv != null) Object.assign(patch, { hrvPosture: null, hrvOffPosture: false });
     const sleep = await deps.storage.upsertSleep(uid, d.date, patch);
     res.json({ ok: true, type: "sleep", sleep });
   });

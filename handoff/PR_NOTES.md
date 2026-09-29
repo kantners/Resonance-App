@@ -123,6 +123,19 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
 - The demo user is also the demo practitioner. The study is seeded as completed (Mark's instruction), with seven demo clients; the seventh is part-way through, allocated so that their two sessions don't touch the canvas contrasts.
 - **Bug found while verifying:** after completion, the quality panel counted every scheduled visit, including visits never held ("2 of 21"). It now counts held (completed) sessions, and a route test shows the old behavior fails. The per-client deltas also skip clients with no held sessions.
 
+## Morning posture, treated like the device (Mark, September 29)
+- **Set once:** `users.hrv_posture` (seated or face-up) is chosen on the first-run Brief or in Settings and pre-selected on Morning-Check. A user with no set posture (anyone from before this change) adopts the posture of their first reading. Migration `0002` backfills it from each user's latest morning reading, and backfills each night's posture from its morning reading.
+- **Off-posture readings are stored and flagged, never averaged:**
+  - `morning_readings.off_posture` and `sleep_logs.hrv_off_posture`, with the reading's posture in `sleep_logs.hrv_posture`.
+  - The rules drop flagged nights everywhere through one predicate (`isUsableNight` → `comparableNights`): B, W, the 7-night averages, night states, consecutive nights out, n / 30, the long game, the pattern callout and the Trends association.
+  - Morning-Check and the Brief's last night show: "Different posture from your baseline; this reading is noted but not used in your averages." Last night's status reads "Not in averages".
+  - A flagged last night isn't judged: no state, no escalation. Like a missing night, it breaks a run of consecutive out-of-range nights.
+  - An off-posture reading never overwrites a usable HRV already logged for that night; it's still stored in `morning_readings`.
+- **Changing the set posture restarts the baseline, the same as a device change.** As with the device, the restart comes from the data: the baseline restarts at the first usable night whose posture differs from the previous usable night with a posture. Until a reading in the new posture arrives, the Brief is unchanged.
+- **Overnight values carry no posture:** HRV typed on the Sleep screen or read from a screenshot sets `hrv_posture` to null and clears the flag. Nights without a posture never count as a posture change, so mixing overnight values with morning readings from the same device doesn't restart anything.
+- **Rule version bumped to `2026.09-r3`,** because the rules now give different results for flagged nights and stored labels are traced to the version (B5). The HANDOFF names `r2`. Previously stored `daily_status` rows stay as they are; new rows use r3. So for the first week after deploy, "Recovering" only sees labels computed under r3.
+- **Tests:** 9 rule tests (`posture.test.ts`): week and baseline exclusion, off-posture last night, restart on a posture change, overnight values neutral, the pattern, the association and the long game. Also a route test for the set-once flow, flagging, no overwrite, Settings validation and the Sleep-screen reset. Mutation check: counting flagged nights again fails 5 of the 9 rule tests.
+
 ## Environment limits
 - There's no Docker on the build machine, so `docker build` isn't run locally; CI and Railway cover the build.
 - There's no installed Postgres either. `db:migrate`, `seed:demo` and `npm run dev` run end-to-end against PGlite's Postgres wire-protocol server, started from a scratch folder (not a project dependency). Sep 29: fresh `drizzle-kit migrate`, then the seed reproduced the canvas numbers, then the dev server served health, demo login, the Brief (Steady · 7 of 7, 48.6 / 55.1) and the completed demo study with values unlocked.

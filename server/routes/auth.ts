@@ -2,7 +2,7 @@ import type { Express } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { User } from "@shared/schema";
-import { zHrvSource } from "@shared/schema";
+import { zHrvSource, zPosture } from "@shared/schema";
 import { badRequest, conflict, HttpError, requireAuth, userId } from "../http";
 import { AUTH_RATE_LIMIT, createRateLimiter } from "../middleware/rateLimit";
 import { UniqueViolation } from "../storage/types";
@@ -29,6 +29,7 @@ export function publicUser(u: User, isPractitioner: boolean): MeResponse {
     timeZone: u.timeZone,
     defaultHrvSource: u.defaultHrvSource,
     defaultHrvDevice: u.defaultHrvDevice,
+    hrvPosture: u.hrvPosture as MeResponse["hrvPosture"],
     isPractitioner,
   };
 }
@@ -47,6 +48,8 @@ const zSettings = z.object({
   timeZone: zTimeZone.optional(),
   defaultHrvSource: zHrvSource.optional(),
   defaultHrvDevice: z.string().trim().min(1).max(120).optional(),
+  // Changing it restarts the baseline once readings in the new posture arrive (same as a device).
+  hrvPosture: zPosture.extract(["seated", "face_up"]).optional(),
 }).strict();
 
 export function registerAuthRoutes(app: Express, deps: RouteDeps) {

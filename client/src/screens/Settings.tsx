@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { FormError } from "@/components/Fields";
 import { Eyebrow, SubScreen } from "@/components/Layout";
+import { PostureSetting } from "@/components/PostureSetting";
 import { useAuth } from "@/hooks/use-auth";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { deviceTimeZone } from "@/lib/dates";
@@ -53,6 +54,15 @@ export default function SettingsScreen() {
             onClick={() => save.mutate({ defaultHrvDevice: deviceValue.trim() })}>Save</button>
         </div>
         <FormError>{save.error ? errorText(save.error) : null}</FormError>
+      </section>
+
+      <section className="r-card px-5 py-4 flex flex-col gap-2.5">
+        <Eyebrow>MORNING POSTURE</Eyebrow>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">
+          The posture you take your morning reading in, pre-selected each morning. Changing it restarts your baseline,
+          the same as a new device. A reading in a different posture is kept but not used in your averages.
+        </p>
+        <PostureSetting value={me.hrvPosture} />
       </section>
 
       {!me.isPractitioner && (

@@ -34,7 +34,7 @@ describe("baseline windows and ranges (§3.2)", () => {
     expect(parseHrvLogScale("true")).toBe(true);
     expect(parseHrvLogScale("false")).toBe(false);
     expect(parseHrvLogScale("0")).toBe(false);
-    expect(RULE_VERSION).toBe("2026.09-r2");
+    expect(RULE_VERSION).toBe("2026.09-r3");
   });
 
   it("the label needs at least 5 of the 7 nights (B7 night count)", () => {

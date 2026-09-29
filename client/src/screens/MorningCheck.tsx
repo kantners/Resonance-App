@@ -8,11 +8,8 @@ import { SubScreen } from "@/components/Layout";
 import { Field, FormError, num, PrimaryButton, UnitInput } from "@/components/Fields";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { localIsoNow, localToday } from "@/lib/dates";
-
-const POSTURES = [
-  { value: "seated", label: "Seated" },
-  { value: "face_up", label: "Lying face-up" },
-] as const;
+import { MORNING_POSTURES, OFF_POSTURE_NOTE, postureLabel } from "@/lib/posture";
+import type { Posture } from "@shared/api";
 
 export default function MorningCheckScreen() {
   const [, navigate] = useLocation();
@@ -20,11 +17,16 @@ export default function MorningCheckScreen() {
   const [rmssd, setRmssd] = useState("");
   const [hr, setHr] = useState("");
   const [device, setDevice] = useState<string | null>(null);
-  const [posture, setPosture] = useState<(typeof POSTURES)[number]["value"]>("seated");
+  // Pre-selected from the set posture, like the device.
+  const [picked, setPicked] = useState<Posture | null>(null);
   const [touched, setTouched] = useState(false);
   const save = useSave<Record<string, unknown>>("POST", "/api/morning-readings");
 
   const deviceValue = device ?? me?.defaultHrvDevice ?? "";
+  const setPosture = me?.hrvPosture ?? null;
+  const posture: Posture = picked ?? setPosture ?? "seated";
+  const offPosture = !!setPosture && posture !== setPosture;
+  const step1 = (MORNING_POSTURES.find(p => p.value === posture) ?? MORNING_POSTURES[0]).step;
   const r = num(rmssd), h = num(hr);
   const rBad = touched && (r == null || Number.isNaN(r) || r <= 0 || r > 400);
   const hBad = touched && (h == null || Number.isNaN(h) || h < 20 || h > 220);
@@ -40,7 +42,7 @@ export default function MorningCheckScreen() {
   }
 
   return (
-    <SubScreen back={{ href: "/", label: "Brief" }} title="Morning reading" meta="60 SECONDS · SEATED · BEFORE COFFEE" demo={me?.isDemo}>
+    <SubScreen back={{ href: "/", label: "Brief" }} title="Morning reading" meta={`60 SECONDS · ${postureLabel(posture).toUpperCase()} · BEFORE COFFEE`} demo={me?.isDemo}>
       <section aria-label="Your reading" className="r-card p-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="HRV (rMSSD)" htmlFor="m-rmssd">
@@ -55,11 +57,12 @@ export default function MorningCheckScreen() {
             placeholder="e.g. Polar H10 + Elite HRV" invalid={dBad} />
         </Field>
         <div role="radiogroup" aria-label="Posture" className="flex flex-wrap gap-1.5">
-          {POSTURES.map(p => (
+          {MORNING_POSTURES.map(p => (
             <button key={p.value} type="button" role="radio" aria-checked={posture === p.value}
-              className="r-chip" onClick={() => setPosture(p.value)}>{p.label}</button>
+              className="r-chip" onClick={() => setPicked(p.value)}>{p.label}</button>
           ))}
         </div>
+        {offPosture && <p className="m-0 text-12 leading-[1.45] text-alert">{OFF_POSTURE_NOTE}</p>}
         {me?.defaultHrvDevice && deviceValue.trim() && deviceValue.trim() !== me.defaultHrvDevice && (
           <p className="m-0 text-12 leading-[1.45] text-alert">
             This differs from your usual source ({me.defaultHrvDevice}). A new source restarts your baseline.
@@ -71,7 +74,7 @@ export default function MorningCheckScreen() {
         <h2 className="m-0 text-15 font-semibold">How to take it</h2>
         <ol className="m-0 p-0 list-none flex flex-col gap-2.5 text-14 leading-[1.45]">
           {[
-            "Sit up, same spot, soon after waking.",
+            step1,
             "Take a 60-second reading with your usual device and app.",
             "Breathe normally. Don't pace it for the reading.",
           ].map((t, i) => (
@@ -81,8 +84,8 @@ export default function MorningCheckScreen() {
       </section>
 
       <p className="m-0 px-3.5 py-3 rounded-control bg-track text-12 leading-[1.5] text-ink-soft">
-        Use the same device and app every morning. Readings from different devices aren't comparable, so your baseline
-        restarts if the source changes. Resonance's own camera reading comes later, once it has been checked against a
+        Use the same device, app and posture every morning. Readings from different devices or postures aren't
+        comparable, so your baseline restarts if either changes. Resonance's own camera reading comes later, once it has been checked against a
         reference recording.
       </p>
 

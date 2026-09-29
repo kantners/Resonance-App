@@ -126,7 +126,9 @@ export interface StatusInput {
 
 export interface Status {
   baseline: Baseline;
-  lastNight: NightInput | null;       // the logged night dated `date`, if any
+  lastNight: NightInput | null;       // the usable logged night dated `date`, if any
+  /** Last night's HRV came from a reading off the set posture: shown with a note, never judged or averaged. */
+  lastNightOffPosture: boolean;
   hrv7Avg: number | null;
   rhr7Avg: number | null;
   weekNights: number;
@@ -177,6 +179,7 @@ export function computeStatus({ date, nights, priorLabels, hrvLogScale }: Status
   return {
     baseline,
     lastNight,
+    lastNightOffPosture: nights.some(n => n.date === date && n.hrv != null && !!n.hrvOffPosture),
     hrv7Avg,
     rhr7Avg,
     weekNights: baseline.week.length,

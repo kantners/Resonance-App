@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   timeZone:     text("time_zone"),                               // IANA, e.g. "America/New_York"
   defaultHrvSource: text("default_hrv_source"),                  // camera | device_manual (first-run question)
   defaultHrvDevice: text("default_hrv_device"),                  // device + app, prefilled on readings
+  hrvPosture:   text("hrv_posture"),                             // seated | face_up | face_down: the set morning posture
   createdAt:    timestamp("created_at").defaultNow().notNull(),
 });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -54,6 +55,8 @@ export const sleepLogs = pgTable("sleep_logs", {
   hrv:              real("hrv"),                                  // rMSSD, ms
   hrvSource:        text("hrv_source").notNull().default("device_manual"), // camera | device_manual
   hrvDevice:        text("hrv_device"),                           // "Polar H10 + Elite HRV"; a change resets the baseline
+  hrvPosture:       text("hrv_posture"),                          // posture of the morning reading behind `hrv`; null for overnight values
+  hrvOffPosture:    boolean("hrv_off_posture").notNull().default(false), // `hrv` came from a reading off the set posture: kept, never averaged
   morningReadingId: integer("morning_reading_id").references(() => morningReadings.id, { onDelete: "set null" }),
   notes:            text("notes"),
 }, (t) => [unique("sleep_user_date").on(t.userId, t.date)]);
@@ -155,6 +158,7 @@ export const morningReadings = pgTable("morning_readings", {
   heartRateBpm:  real("heart_rate_bpm").notNull(),
   signalQuality: real("signal_quality"),                          // 0–1
   posture:       text("posture").notNull().default("seated"),     // seated | face_up | face_down
+  offPosture:    boolean("off_posture").notNull().default(false), // differs from the user's set posture when taken
   hrvSource:     text("hrv_source").notNull().default("device_manual"), // camera | device_manual
   hrvDevice:     text("hrv_device").notNull(),                    // device + app, required
 });

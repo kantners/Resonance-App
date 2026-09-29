@@ -7,11 +7,13 @@ import type { BriefResponse } from "@shared/api";
 import type { ContextTag } from "@shared/schema";
 import { Eyebrow, TabHeader, TabScreen } from "@/components/Layout";
 import { PulseIcon } from "@/components/Icons";
+import { PostureSetting } from "@/components/PostureSetting";
 import { QuietStrip } from "@/components/QuietStrip";
 import { RangeBar, rangeText, WeekLabelHeading } from "@/components/Signals";
 import { errorText, useBrief, useMe, useSave } from "@/lib/api";
 import { deviceTimeZone, fmtHeaderDate, fmtMonth, fmtWeekday, localToday } from "@/lib/dates";
 import { fmt0, fmt1, fmtHours, fmtMinutes } from "@/lib/format";
+import { OFF_POSTURE_NOTE, postureLabel } from "@/lib/posture";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +84,7 @@ function BuildingBaseline({ brief }: { brief: BriefResponse }) {
         </div>
       </section>
       <SourceQuestion brief={brief} />
+      <PostureQuestion />
       <TimeZoneCheck brief={brief} />
     </>
   );
@@ -113,6 +116,23 @@ function SourceQuestion({ brief }: { brief: BriefResponse }) {
       </div>
       {saved && <p className="m-0 text-12 text-muted">Saved: {saved}</p>}
       {save.error && <p role="alert" className="m-0 text-13 text-alert">{errorText(save.error)}</p>}
+    </section>
+  );
+}
+
+/** The morning posture, set once like the device. */
+function PostureQuestion() {
+  const { data: me } = useMe();
+  if (!me) return null;
+  return (
+    <section aria-label="Morning posture" className="r-card px-5 py-4 flex flex-col gap-2.5">
+      <Eyebrow>MORNING POSTURE</Eyebrow>
+      <span className="text-15 font-medium">How do you take your morning reading?</span>
+      <p className="m-0 text-13 leading-[1.45] text-ink-soft">
+        Pick one and keep it. It's pre-selected every morning; a reading in a different posture is kept but not used in
+        your averages.
+      </p>
+      <PostureSetting value={me.hrvPosture} />
     </section>
   );
 }
@@ -222,14 +242,19 @@ function LastNight({ brief }: { brief: BriefResponse }) {
     }
   }
 
-  const status = n.message?.title ?? (n.state === "in_range" ? "In range" : n.state === "no_data" ? "Not logged" : "");
+  const status = n.offPosture ? "Not in averages"
+    : n.message?.title ?? (n.state === "in_range" ? "In range" : n.state === "no_data" ? "Not logged" : "");
   return (
     <div className="flex flex-col gap-2 pt-3.5 border-t border-track">
       <div className="flex justify-between items-baseline">
         <Eyebrow>LAST NIGHT</Eyebrow>
         <span className="text-12 font-semibold">{status}</span>
       </div>
-      {n.state === "no_data" ? (
+      {n.offPosture ? (
+        <p className="m-0 text-14 leading-[1.45]">
+          HRV {fmt0(n.hrv)} ms, {postureLabel(n.hrvPosture).toLowerCase()}. {OFF_POSTURE_NOTE}
+        </p>
+      ) : n.state === "no_data" ? (
         <p className="m-0 text-14 leading-[1.45]">
           No HRV for last night yet. <Link href="/log/morning">Take a morning reading</Link> or <Link href="/log/sleep">log the night</Link>.
         </p>

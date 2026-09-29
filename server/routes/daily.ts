@@ -14,7 +14,10 @@ import type { BriefResponse } from "@shared/api";
 import type { RouteDeps } from ".";
 
 export function toNight(s: SleepLog): NightInput {
-  return { date: s.date, hrv: s.hrv, rhr: s.restingHr, hrvSource: s.hrvSource, hrvDevice: s.hrvDevice };
+  return {
+    date: s.date, hrv: s.hrv, rhr: s.restingHr, hrvSource: s.hrvSource, hrvDevice: s.hrvDevice,
+    hrvPosture: s.hrvPosture, hrvOffPosture: s.hrvOffPosture,
+  };
 }
 
 const zIsoInstant = z.string().refine(s => !Number.isNaN(Date.parse(s)) && /T/.test(s), "Expected an ISO date-time");
@@ -155,6 +158,7 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
         baselineNights: b.base.length,
         baselineNeeded: 14,
         hrvDevice: user.defaultHrvDevice,
+        hrvPosture: user.hrvPosture as BriefResponse["firstRun"]["hrvPosture"],
         timeZone: user.timeZone,
       },
       week: {
@@ -176,6 +180,8 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
         sleepScore: lastSleep?.sleepScore ?? null,
         hours: lastSleep?.hours ?? null,
         hrvDevice: lastSleep?.hrvDevice ?? null,
+        hrvPosture: (lastSleep?.hrvPosture ?? null) as BriefResponse["lastNight"]["hrvPosture"],
+        offPosture: status.lastNightOffPosture,
         state: status.nightState,
         consecutiveOut: status.consecutiveNightsOut,
         tags,
@@ -213,7 +219,10 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
   app.post("/api/sleep", requireAuth, async (req, res) => {
     const uid = userId(req);
     const { date, hrvSource, hrvDevice, ...fields } = zSleep.parse(req.body);
-    const source = fields.hrv != null ? hrvSourceFor(await currentUser(uid), { hrvSource, hrvDevice }) : {};
+    // An HRV typed in here is an overnight value: it carries no posture.
+    const source = fields.hrv != null
+      ? { ...hrvSourceFor(await currentUser(uid), { hrvSource, hrvDevice }), hrvPosture: null, hrvOffPosture: false }
+      : {};
     res.json(await storage.upsertSleep(uid, date, { ...fields, ...source }));
   });
 
@@ -221,15 +230,26 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
   app.post("/api/morning-readings", requireAuth, async (req, res) => {
     const uid = userId(req);
     const body = zMorningReading.parse(req.body);
-    const source = hrvSourceFor(await currentUser(uid), body);
+    const user = await currentUser(uid);
+    const source = hrvSourceFor(user, body);
+    // Posture is set once, like the device. A user without one (from before
+    // posture was a setting) adopts the posture of this reading.
+    if (!user.hrvPosture) await storage.updateUserSettings(uid, { hrvPosture: body.posture });
+    const offPosture = !!user.hrvPosture && body.posture !== user.hrvPosture;
     const reading = await storage.createMorningReading(uid, {
       date: body.date, takenAt: body.takenAt, rmssdMs: body.rmssdMs, heartRateBpm: body.heartRateBpm,
-      signalQuality: body.signalQuality ?? null, posture: body.posture, ...source,
+      signalQuality: body.signalQuality ?? null, posture: body.posture, offPosture, ...source,
     });
     // The reading becomes that morning's HRV input. Its heart rate is a
     // 60-second value, not overnight resting HR, so restingHr is left alone.
-    const sleep = await storage.upsertSleep(uid, body.date, { hrv: body.rmssdMs, ...source, morningReadingId: reading.id });
-    res.json({ reading, sleep });
+    // An off-posture reading is stored and flagged, never averaged, and never
+    // replaces a usable HRV already logged for that night.
+    const existing = await storage.getSleep(uid, body.date);
+    const keepExisting = offPosture && existing?.hrv != null && !existing.hrvOffPosture;
+    const sleep = keepExisting ? existing : await storage.upsertSleep(uid, body.date, {
+      hrv: body.rmssdMs, ...source, hrvPosture: body.posture, hrvOffPosture: offPosture, morningReadingId: reading.id,
+    });
+    res.json({ reading, sleep, offPosture });
   });
 
   // ── Breathwork (kept from KEWT; counts as chosen stillness) ───────────────

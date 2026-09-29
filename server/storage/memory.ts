@@ -45,7 +45,8 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       const u: User = {
         id: id(), email: data.email.toLowerCase(), passwordHash: data.passwordHash, firstName: data.firstName ?? null,
         isDemo: data.isDemo ?? false, timeZone: data.timeZone ?? null,
-        defaultHrvSource: data.defaultHrvSource ?? null, defaultHrvDevice: data.defaultHrvDevice ?? null, createdAt: new Date(),
+        defaultHrvSource: data.defaultHrvSource ?? null, defaultHrvDevice: data.defaultHrvDevice ?? null,
+        hrvPosture: data.hrvPosture ?? null, createdAt: new Date(),
       };
       usersT.push(u);
       return u;
@@ -69,7 +70,7 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       if (!row) {
         row = {
           id: id(), userId, date, hours: null, quality: null, sleepScore: null, restingHr: null, hrv: null,
-          hrvSource: "device_manual", hrvDevice: null, morningReadingId: null, notes: null,
+          hrvSource: "device_manual", hrvDevice: null, hrvPosture: null, hrvOffPosture: false, morningReadingId: null, notes: null,
         };
         sleep.push(row);
       }
@@ -124,7 +125,7 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
     },
 
     async createMorningReading(userId, data) {
-      const row = { id: id(), userId, durationSec: 60, signalQuality: null, posture: "seated", hrvSource: "device_manual", ...data } as MorningReading;
+      const row = { id: id(), userId, durationSec: 60, signalQuality: null, posture: "seated", offPosture: false, hrvSource: "device_manual", ...data } as MorningReading;
       readings.push(row);
       return row;
     },

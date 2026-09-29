@@ -223,7 +223,7 @@ async function main() {
   // ── The demo user ──────────────────────────────────────────────────────────
   const demo = await storage.createUser({
     email: DEMO_EMAIL, passwordHash: await bcrypt.hash(DEMO_PASSWORD, 10), firstName: "Demo",
-    isDemo: true, timeZone, defaultHrvSource: "device_manual", defaultHrvDevice: DEVICE,
+    isDemo: true, timeZone, defaultHrvSource: "device_manual", defaultHrvDevice: DEVICE, hrvPosture: "seated",
   });
 
   for (const n of found.nights) {

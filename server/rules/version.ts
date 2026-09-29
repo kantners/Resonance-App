@@ -1,6 +1,6 @@
 // The rule version recorded with every computed value (HANDOFF §3).
 // Bump it whenever any rule in server/rules changes what it outputs.
-export const RULE_VERSION = "2026.09-r2";
+export const RULE_VERSION = "2026.09-r3";
 
 /**
  * Parses the HRV_LOG_SCALE flag. Default on (HANDOFF §8.1); only an explicit

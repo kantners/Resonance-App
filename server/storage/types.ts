@@ -6,9 +6,10 @@ import type {
 } from "@shared/schema";
 
 export type SleepPatch = Partial<Pick<SleepLog,
-  "hours" | "sleepScore" | "hrv" | "restingHr" | "hrvSource" | "hrvDevice" | "morningReadingId" | "notes">>;
+  "hours" | "sleepScore" | "hrv" | "restingHr" | "hrvSource" | "hrvDevice" | "hrvPosture" | "hrvOffPosture"
+  | "morningReadingId" | "notes">>;
 
-export type UserSettingsPatch = Partial<Pick<User, "firstName" | "timeZone" | "defaultHrvSource" | "defaultHrvDevice">>;
+export type UserSettingsPatch = Partial<Pick<User, "firstName" | "timeZone" | "defaultHrvSource" | "defaultHrvDevice" | "hrvPosture">>;
 
 export type ProtocolInsert = Omit<StudyProtocol, "id" | "createdAt" | "lockedAt" | "completedAt"
   | "allocationList" | "allocationNonce" | "allocationSha256">;

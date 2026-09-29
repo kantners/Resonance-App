@@ -3,6 +3,7 @@
 // either side fails `npm run check`.
 import type { ContextTag } from "./schema";
 
+export type Posture = "seated" | "face_up" | "face_down";
 export type WeekLabel = "building_baseline" | "steady" | "drifting_down" | "recovering";
 export type NightState = "in_range" | "one_out" | "both_out";
 
@@ -35,6 +36,7 @@ export interface BriefResponse {
     baselineNights: number;
     baselineNeeded: number;
     hrvDevice: string | null;
+    hrvPosture: Posture | null;
     timeZone: string | null;
   };
   week: {
@@ -56,6 +58,9 @@ export interface BriefResponse {
     sleepScore: number | null;
     hours: number | null;
     hrvDevice: string | null;
+    hrvPosture: Posture | null;
+    /** The reading was off the set posture: shown with a note, not judged or averaged. */
+    offPosture: boolean;
     state: NightState | "no_data";
     consecutiveOut: number;
     tags: ContextTag[];
@@ -88,6 +93,7 @@ export interface MeResponse {
   timeZone: string | null;
   defaultHrvSource: string | null;
   defaultHrvDevice: string | null;
+  hrvPosture: Posture | null;
   isPractitioner: boolean;
 }
 

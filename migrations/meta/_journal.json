@@ -15,6 +15,13 @@
       "when": 1790638897951,
       "tag": "0001_enrollment_tombstones_and_default_device",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790696659700,
+      "tag": "0002_morning_posture",
+      "breakpoints": true
     }
   ]
 }
