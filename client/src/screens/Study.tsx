@@ -268,7 +268,7 @@ function LockedStudy({ protocol: p }: { protocol: ProtocolDto }) {
                 <ContrastLine title={`Primary · ${x} minus ${y}`} c={r.primary} eff={eff} unit={unit} />
                 {r.secondary && <ContrastLine title={`Secondary · ${r.secondary.contrast.replace("-", " minus ")}`} c={r.secondary} eff={eff} unit={unit} />}
                 {r.exploratory.map(c => <ContrastLine key={c.contrast} title={`Exploratory · ${c.contrast.replace("-", " minus ")}`} c={c} eff={eff} unit={unit} />)}
-                <Verdict primary={r.primary} labelX={label(x)} labelY={label(y)} />
+                {r.verdicts && <Verdicts verdicts={r.verdicts} primary={r.primary} labelX={label(x)} labelY={label(y)} />}
               </>
             )}
           </section>
@@ -342,14 +342,29 @@ function ContrastLine({ title, c, eff, unit }: { title: string; c: ContrastDto; 
   );
 }
 
-/** The primary contrast's verdict, from the server (it depends on the study's status). */
-function Verdict({ primary: c, labelX, labelY }: { primary: ContrastDto; labelX: string; labelY: string }) {
+/**
+ * One verdict per contrast, from the server. The headline is the primary's
+ * alone; the secondary is labelled so it can't be read as the main finding.
+ */
+function Verdicts({ verdicts: v, primary: c, labelX, labelY }: {
+  verdicts: NonNullable<StudyResultsDto["verdicts"]>; primary: ContrastDto; labelX: string; labelY: string;
+}) {
   const n = c.pairs.length;
   const counts = n === 0 ? "" : `${c.rose} of ${n} clients rose with ${labelX.toLowerCase()} compared with ${labelY.toLowerCase()}, ${c.unchanged} ${c.unchanged === 1 ? "was" : "were"} unchanged, ${c.fell} fell.`;
+  const others = v.lines.filter(l => l.role !== "primary");
   return (
-    <p className="m-0 text-14 leading-[1.45]">
-      <strong>{c.verdictText}</strong>{counts && " "}{counts}
-    </p>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-1 px-3 py-2.5 rounded-control bg-ground">
+        <span className="text-12 text-muted">{v.headline.label} · {v.headline.contrast.replace("-", " minus ")}</span>
+        <p className="m-0 text-14 leading-[1.45]"><strong>{v.headline.verdictText}</strong>{counts && " "}{counts}</p>
+      </div>
+      {others.map(l => (
+        <div key={l.contrast} className="flex flex-col gap-1 px-3">
+          <span className="text-12 text-muted">{l.label} · {l.contrast.replace("-", " minus ")}</span>
+          <p className="m-0 text-13 leading-[1.45] text-ink-soft">{l.verdictText}</p>
+        </div>
+      ))}
+    </div>
   );
 }
 

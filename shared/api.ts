@@ -108,6 +108,14 @@ export interface ContrastDto {
   verdictText: string;
 }
 
+export interface VerdictLineDto {
+  role: "primary" | "secondary" | "exploratory";
+  label: string;                   // "Primary (headline)", "Secondary (exploratory for the headline)", "Exploratory"
+  contrast: string;
+  verdict: ContrastDto["verdict"];
+  verdictText: string;
+}
+
 export interface StudyResultsDto {
   protocolId: number;
   version: number;
@@ -122,6 +130,8 @@ export interface StudyResultsDto {
   primary: ContrastDto | null;
   secondary: ContrastDto | null;
   exploratory: ContrastDto[];
+  /** Completed studies only: one verdict line per contrast; the headline is the primary's. */
+  verdicts: { headline: VerdictLineDto; lines: VerdictLineDto[] } | null;
   quality: {
     blinding: { correct: number; guesses: number; chance: number };
     meanIntentionHeld: number | null;

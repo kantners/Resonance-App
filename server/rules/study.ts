@@ -196,6 +196,40 @@ export function pairedContrast(
   return contrastFromPairs(contrast, pairs, scale, completed, exploratory);
 }
 
+// ─── Verdict lines: one per contrast; the headline is the primary's ─────────
+
+export const PRIMARY_LABEL = "Primary (headline)";
+/** So the secondary can't be read as the main finding (Mark, Sep 29). */
+export const SECONDARY_LABEL = "Secondary (exploratory for the headline)";
+export const EXPLORATORY_LABEL = "Exploratory";
+
+export interface VerdictLine {
+  role: "primary" | "secondary" | "exploratory";
+  label: string;
+  contrast: string;
+  verdict: StudyVerdict;
+  verdictText: string;
+}
+
+export interface Verdicts {
+  headline: VerdictLine;   // always the primary contrast, whatever the others show
+  lines: VerdictLine[];    // primary, then secondary, then exploratory contrasts
+}
+
+export function verdictLines(primary: Contrast, secondary: Contrast | null, exploratory: readonly Contrast[] = []): Verdicts {
+  const line = (role: VerdictLine["role"], label: string, c: Contrast): VerdictLine =>
+    ({ role, label, contrast: c.contrast, verdict: c.verdict, verdictText: c.verdictText });
+  const headline = line("primary", PRIMARY_LABEL, primary);
+  return {
+    headline,
+    lines: [
+      headline,
+      ...(secondary ? [line("secondary", SECONDARY_LABEL, secondary)] : []),
+      ...exploratory.map(c => line("exploratory", EXPLORATORY_LABEL, c)),
+    ],
+  };
+}
+
 /** A contrast is exploratory when it involves an optional arm. */
 export function isExploratoryContrast(contrast: string, optionalCodes: ReadonlySet<string>): boolean {
   const [x, y] = parseContrast(contrast);

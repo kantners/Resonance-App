@@ -284,8 +284,8 @@ describe("Session Study", () => {
     expect(methods).toContain("Secondary contrast (fixed at lock): C-D (exploratory)");
     expect(methods).toContain("Exploratory contrasts (comparisons with the optional arm; not confirmatory): A-D, B-D");
     const results = (await p.get(`/api/study/protocols/${created.body.id}/export?part=results`)).text;
-    expect(results).toContain("secondary (exploratory),C-D");
-    expect(results).toContain("exploratory,A-D");
+    expect(results).toContain("secondary,Secondary (exploratory for the headline),C-D");
+    expect(results).toContain("exploratory,Exploratory,A-D");
   });
 
   it("no enrollment before lock; non-practitioners can't create protocols", async () => {
@@ -552,7 +552,10 @@ describe("Session Study", () => {
     const LOCKED = "Results unlock when the study is complete (prevents interim peeking).";
     expect((await p.get(`${url}/export?part=results`)).text).toContain(LOCKED);
     expect((await p.get(`${url}/export?part=sessions`)).text.trim()).toBe(LOCKED);
-    expect((await p.get(`${url}/export?part=methods`)).status).toBe(200);
+    const midMethods = await p.get(`${url}/export?part=methods`);
+    expect(midMethods.status).toBe(200);
+    expect(midMethods.text).not.toMatch(/Headline verdict|Results \(study complete\)/);
+    expect(before.body.verdicts).toBeNull();
 
     // After completion: everything.
     expect((await p.post(`${url}/complete`)).status).toBe(200);
@@ -572,7 +575,17 @@ describe("Session Study", () => {
     expect(rows).toHaveLength(9);
     expect(rows.filter(r => r[23] !== "")).toHaveLength(6);          // completed_at
     expect(rows.filter(r => r[0] === "C-003").every(r => r[5] === "" && r[11] === "")).toBe(true);   // no pre/post rMSSD
-    expect((await p.get(`${url}/export?part=results`)).text).toContain("primary,A-B,2,");
+    expect((await p.get(`${url}/export?part=results`)).text).toContain("primary,Primary (headline),A-B,2,");
+    // Per-contrast verdicts: the API and the methods export; the headline is the primary's.
+    expect(after.body.verdicts.headline).toMatchObject({ role: "primary", contrast: "A-B", verdictText: after.body.primary.verdictText });
+    expect(after.body.verdicts.lines.map((l: any) => [l.role, l.label, l.contrast])).toEqual([
+      ["primary", "Primary (headline)", "A-B"],
+      ["secondary", "Secondary (exploratory for the headline)", "B-C"],
+    ]);
+    const methods = (await p.get(`${url}/export?part=methods`)).text;
+    expect(methods).toContain(`Headline verdict (primary contrast only): ${after.body.primary.verdictText}`);
+    expect(methods).toContain(`  Primary (headline), A-B: ${after.body.primary.verdictText}`);
+    expect(methods).toContain(`  Secondary (exploratory for the headline), B-C: ${after.body.secondary.verdictText}`);
   });
 
   it("C11: demo accounts can't join real studies, and real clients can't join demo studies", async () => {

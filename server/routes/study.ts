@@ -11,7 +11,7 @@ import {
 import { STUDY_TEMPLATES } from "@shared/studyTemplates";
 import {
   allocationHash, buildAllocationList, isExploratoryContrast, nextAllocationRow, sessionDelta, pairedContrast, parseContrast,
-  practitionerResultsVisible, qualityPanel, RESULTS_LOCKED_TEXT, RULE_VERSION, type AllocationRow, type SessionRecord,
+  practitionerResultsVisible, qualityPanel, RESULTS_LOCKED_TEXT, RULE_VERSION, verdictLines, type AllocationRow, type SessionRecord,
 } from "../rules";
 import { badRequest, conflict, forbidden, idParam, notFound, requireAuth, userId } from "../http";
 import {
@@ -468,6 +468,13 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
     // No interim peeking (Mark, Sep 28): until the protocol is complete, only
     // progress and quality checks are returned; no contrasts, deltas or verdicts.
     const unlocked = protocol.completedAt != null;
+    // Contrasts are fixed at lock, like the analysis scale.
+    const primary = !unlocked ? null : pairedContrast(records, protocol.primaryContrast, scale, unlocked);
+    const secondary = unlocked && protocol.secondaryContrast
+      ? pairedContrast(records, protocol.secondaryContrast, scale, unlocked,
+        isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
+      : null;
+    const exploratory = !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, unlocked, true));
     return {
       protocolId: protocol.id,
       version: protocol.version,
@@ -478,13 +485,11 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
       isDemo: await isDemoProtocol(protocol),
       progress: progress(protocol, activeClients, contexts),
       resultsLocked: !unlocked,
-      // Contrasts are fixed at lock, like the analysis scale.
-      primary: !unlocked ? null : pairedContrast(records, protocol.primaryContrast, scale, unlocked),
-      secondary: unlocked && protocol.secondaryContrast
-        ? pairedContrast(records, protocol.secondaryContrast, scale, unlocked,
-          isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
-        : null,
-      exploratory: !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, unlocked, true)),
+      primary,
+      secondary,
+      exploratory,
+      // One verdict line per contrast; the headline is the primary's alone.
+      verdicts: primary ? verdictLines(primary, secondary, exploratory) : null,
       // Quality counts sessions actually held (completed), not every scheduled visit:
       // after completion, unheld visits would otherwise inflate the denominators.
       quality: qualityPanel(records.filter(r => heldIds.has(r.id)), protocol.primaryContrast, protocol.readingDevice),
@@ -554,6 +559,13 @@ function exportText(
     p.commitmentText,
     ``,
     `Results are findings observed in our sessions, not general claims.`,
+    // Completed studies only (no interim peeking): one verdict per contrast; the headline is the primary's.
+    ...(r.verdicts ? [
+      ``,
+      `Results (study complete):`,
+      `Headline verdict (primary contrast only): ${r.verdicts.headline.verdictText}`,
+      ...r.verdicts.lines.map((l: any) => `  ${l.label}, ${l.contrast}: ${l.verdictText}`),
+    ] : []),
   ].join("\n") + "\n";
 
   const sessions = csv([
@@ -575,16 +587,18 @@ function exportText(
     ...contexts.filter(c => (c.session.deviations ?? "").trim()).map(c => [c.enrollment.clientCode, c.session.visitNumber, c.session.deviations]),
   ]);
 
-  const fmt = (role: string, c: any) => c && c.ci
-    ? [role, c.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, c.verdictText]
-    : [role, c?.contrast ?? "", c?.pairs.length ?? 0, "", "", "", c?.verdictText ?? ""];
+  const contrastOf = (l: any) => [r.primary, r.secondary, ...r.exploratory].find((c: any) => c?.contrast === l.contrast);
+  const fmt = (l: any) => {
+    const c = contrastOf(l);
+    return c?.ci
+      ? [l.role, l.label, l.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, l.verdictText]
+      : [l.role, l.label, l.contrast, c?.pairs.length ?? 0, "", "", "", l.verdictText];
+  };
   const locked = LOCKED_UNTIL_COMPLETE;
   const results = csv([
     ...(r.resultsLocked ? [[locked]] : [
-      ["role", "contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
-      fmt("primary", r.primary),
-      ...(r.secondary ? [fmt(r.secondary.exploratory ? "secondary (exploratory)" : "secondary", r.secondary)] : []),
-      ...r.exploratory.map((c: any) => fmt("exploratory", c)),
+      ["role", "label", "contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
+      ...r.verdicts.lines.map(fmt),
     ]),
     [],
     ["blinding_correct", "blinding_guesses", "chance", "mean_intention_held", "total_drift", "sessions_with_deviations", "device_mismatches"],

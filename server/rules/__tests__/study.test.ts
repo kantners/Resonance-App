@@ -1,8 +1,8 @@
 import { randomInt } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
-  allocationHash, blockSequences, buildAllocationList, canonicalJson, nextAllocationRow, pairedContrast,
-  practitionerResultsVisible, qualityPanel, sessionDelta, verifyAllocation, type Rng, type SessionRecord,
+  allocationHash, blockSequences, buildAllocationList, canonicalJson, contrastFromPairs, nextAllocationRow, pairedContrast,
+  practitionerResultsVisible, qualityPanel, sessionDelta, verdictLines, verifyAllocation, type Rng, type SessionRecord,
 } from "..";
 
 const cryptoRng: Rng = n => randomInt(n);
@@ -171,6 +171,37 @@ describe("analysis (§4.5, A2, A3)", () => {
       expect(down.verdictText).toMatch(/^Observed in our sessions: a decrease of 10\.\d ms \(likely range −10\.\d ms to −10\.\d ms\)\.$/);
       expect(pairedContrast(clear, "A-B", "ln", true).verdictText).toMatch(/an increase of \d+\.\d%/);
       expect(pairedContrast(clear, "A-B", "linear", true, true).verdictText).toMatch(/^Exploratory\. Observed in our sessions/);
+    });
+
+    describe("per-contrast verdicts: primary null, secondary positive", () => {
+      const primary = contrastFromPairs("A-B", [2, -2, 1, -1], "linear", true);            // range includes zero
+      const secondary = contrastFromPairs("B-C", [10.1, 10.2, 10.3, 10.4], "linear", true);  // range excludes zero
+      const v = verdictLines(primary, secondary);
+
+      it("each contrast gets its own verdict line under the same status rules", () => {
+        expect(v.lines.map(l => [l.role, l.contrast, l.verdict])).toEqual([
+          ["primary", "A-B", "no_difference"],
+          ["secondary", "B-C", "observed_positive"],
+        ]);
+        expect(v.lines[0].verdictText).toBe("No measurable difference in this study: the likely range includes zero.");
+        expect(v.lines[1].verdictText).toMatch(/^Observed in our sessions: an increase of 10\.3 ms \(likely range/);
+      });
+
+      it("the headline comes from the primary only, never the secondary", () => {
+        expect(v.headline).toBe(v.lines[0]);
+        expect(v.headline.verdict).toBe("no_difference");
+        expect(v.headline.verdictText).not.toMatch(/Observed/);
+        // Swapping in a null secondary doesn't change the headline either.
+        expect(verdictLines(primary, null).headline.verdictText).toBe(v.headline.verdictText);
+      });
+
+      it("the secondary is labelled so it can't be read as the main finding", () => {
+        expect(v.lines[0].label).toBe("Primary (headline)");
+        expect(v.lines[1].label).toBe("Secondary (exploratory for the headline)");
+        const explor = verdictLines(primary, secondary, [contrastFromPairs("A-D", [1, 2, 3], "linear", true, true)]);
+        expect(explor.lines[2]).toMatchObject({ role: "exploratory", label: "Exploratory" });
+        expect(explor.lines[2].verdictText).toMatch(/^Exploratory\. /);
+      });
     });
 
     it("a completed study never says 'too early to tell', and nothing says 'prove'", () => {

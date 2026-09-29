@@ -132,6 +132,18 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
   - The target-client count no longer affects the verdict: completion is the practitioner's call (`/complete`), and the protocol states where it stops.
   - **HANDOFF §7 fixture changed:** the six canvas pairs (+0.67, −1.9 to +3.2) expected "Too early to tell". The fixture test now asserts results-locked while running and "No measurable difference…" once completed.
   - Rule tests cover all three cases, plus a check that no status or data produces "too early" or "prove". Mutation check: returning "Too early to tell." for a completed study whose range includes zero fails 3 of them.
+- **Verdicts are per contrast (Mark, September 29):**
+  - `verdictLines()` gives each contrast its own line under the same status rules: "Primary (headline)", "Secondary (exploratory for the headline)", and "Exploratory" for the optional-arm contrasts.
+  - The headline verdict is always the primary's, whatever the secondary shows.
+  - The results API sends `verdicts: { headline, lines }` (null until completion).
+  - The Study screen shows the headline in its own box with the rose/unchanged/fell counts, and the other lines below it, smaller and labelled.
+  - Export:
+    - `results.csv` gains a `label` column (`role,label,contrast,…`).
+    - `methods.txt` gets a "Results (study complete)" section with "Headline verdict (primary contrast only): …" and one line per contrast. It appears only after completion, so the methods file stays results-free mid-study.
+  - Tests:
+    - rule tests for primary null / secondary positive: per-contrast lines, the headline from the primary only, the labels
+    - route assertions for the API lines and both exports, before and after completion
+    - mutation check: a headline taken from the secondary fails 4 tests
 - **Two demo protocols,** both belonging to the demo practitioner (`is_demo`, "Illustrative data"):
   - (a) **Running:** the canvas study. 6 of 12 clients, 20 of 36 sessions, results locked, 5 of 12 guesses correct, 9.1 / 10. It's the Study tab's default.
   - (b) **Completed:** 12 of 12 clients, 36 of 36 sessions. A − B +0.33 ms (−0.9 to +1.6) reads "No measurable difference…"; B − C +2.0 ms (+0.9 to +3.0) reads "Observed in our sessions: an increase…"; 11 of 24 guesses correct. The seed stops with an error if the data ever stops producing both completed verdicts.
