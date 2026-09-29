@@ -322,6 +322,8 @@ function QuietCard({ brief }: { brief: BriefResponse }) {
 
 function PatternCard({ brief }: { brief: BriefResponse }) {
   const p = brief.pattern;
+  // The callout only triggers on a below-range night, so this is a drop; guard anyway.
+  const down = p.hrvDiffFromBaselineMs != null ? -Math.round(p.hrvDiffFromBaselineMs) : null;
   return (
     <section aria-label="Pattern" className="r-card px-[18px] py-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -333,8 +335,9 @@ function PatternCard({ brief }: { brief: BriefResponse }) {
         Lower HRV followed {p.seenAfter} of your last {p.highExposureDays} high-screen days.
       </p>
       <p className="m-0 text-13 leading-[1.45] text-ink-soft">
-        {fmtMinutes(p.yesterdayMin)} vs. your {fmtMinutes(p.averageMin)} daily average.
-        {" "}Seen after {p.seenAfter} of your last {p.highExposureDays} high-exposure days. {p.caveat}
+        {/* Yesterday as the latest instance of the pattern (Mark, Sep 29). */}
+        Yesterday fits it: {fmtMinutes(p.yesterdayMin)} of screen time against your {fmtMinutes(p.averageMin)} average
+        {down != null && down > 0 && <>, and HRV {down} ms below your average last night</>}. {p.caveat}
       </p>
       <Link href="/trends" className="r-link self-start">See the week →</Link>
     </section>
