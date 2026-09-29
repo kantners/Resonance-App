@@ -39,5 +39,5 @@ export function createRateLimiter({ max, windowMs, now = Date.now }: RateLimitOp
   };
 }
 
-// Login and register: 10 attempts per 15 minutes per IP.
-export const authRateLimit = createRateLimiter({ max: 10, windowMs: 15 * 60 * 1000 });
+// Login and register: 10 attempts per 15 minutes per IP (C10).
+export const AUTH_RATE_LIMIT = { max: 10, windowMs: 15 * 60 * 1000 };

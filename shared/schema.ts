@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   firstName:    text("first_name"),
   isDemo:       boolean("is_demo").notNull().default(false),    // seed:demo accounts; drives "Illustrative data"
   timeZone:     text("time_zone"),                               // IANA, e.g. "America/New_York"
+  defaultHrvSource: text("default_hrv_source"),                  // camera | device_manual (first-run question)
+  defaultHrvDevice: text("default_hrv_device"),                  // device + app, prefilled on readings
   createdAt:    timestamp("created_at").defaultNow().notNull(),
 });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -272,7 +274,9 @@ export type StudyProtocol = typeof studyProtocols.$inferSelect;
 export const studyEnrollments = pgTable("study_enrollments", {
   id:                   serial("id").primaryKey(),
   protocolId:           integer("protocol_id").notNull().references(() => studyProtocols.id),
-  clientUserId:         integer("client_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // Nulled on withdrawal or account deletion: the row stays as an anonymised
+  // tombstone so its allocation row stays consumed (no re-rolling by withdrawing).
+  clientUserId:         integer("client_user_id").references(() => users.id, { onDelete: "set null" }),
   clientCode:           text("client_code").notNull(),            // "C-014"
   consentVersion:       text("consent_version").notNull(),
   consentedAt:          timestamp("consented_at").notNull(),

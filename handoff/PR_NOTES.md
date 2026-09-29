@@ -35,6 +35,23 @@
   - The copy lint scans string literals and JSX text only (not identifiers or comments), and has a self-test that proves it catches banned wording.
   - `tsconfig` now typechecks the tests as well.
   - CI moved up from step 11 to step 7, so it guards every later push.
+- **Step 8 (routes):**
+  - **Withdrawal no longer frees the allocation row** (a gap in the plan). Deleting the enrollment would have let the next client reuse the same sequence, so withdrawing would effectively re-roll the allocation. Withdrawal now deletes the sessions, clears the touch profile and unlinks the client, but keeps an anonymised tombstone. Migration `0001` makes `study_enrollments.client_user_id` nullable with `ON DELETE SET NULL` so account deletion behaves the same way. Deleting an account withdraws all of its enrollments first.
+  - **Readings come only through the client route** (`PATCH /sessions/:id/client`), as HANDOFF §5 lists them. The practitioner's `PATCH` can't set readings or the guess.
+  - **Session order enforced server-side:** the pre-reading can't change after the reveal, the post-reading needs the reveal, the guess needs the post-reading, and a session can't be marked complete without the post-reading. `/start` can be repeated; it returns the same condition and keeps the first reveal time. Every reveal is logged to the server log.
+  - **The client's guess is stored as an arm code or `not_sure`**, so it works for any arms. The template names (`reiki`/`touch_only`/`rest`) aren't accepted. The practitioner sees the guess only once the session is complete.
+  - **Inherent A4 limit:** in a crossover the practitioner knows each client gets each condition once, so after revealing all but one visit, the last one can be deduced. The API never shows it, but the design allows the inference. The protocol's known-limits section already says the practitioner isn't blind.
+  - **Deck study 3 template:** primary contrast C−A (Reiki added to breath), secondary C−B. These are my defaults; please confirm.
+  - **Per-practitioner results:** a protocol has one practitioner in Layer 0, so only the visibility flag is computed and there's no breakdown.
+  - **Export:** a text + CSV bundle (`?part=all|methods|sessions|deviations|results`); no PDF, to avoid a new dependency.
+  - **Screenshots:** the model defaults to `gpt-4o-mini` as HANDOFF §0 says (the KEWT copy actually used `gpt-4o`), overridable with `OPENAI_VISION_MODEL`. Fields read with a confidence below 0.7 go into `lowConfidenceFields`.
+  - **A morning reading sets that date's `sleep_logs.hrv`,** but not `restingHr`: a 60-second heart rate isn't an overnight resting heart rate.
+  - **Routes added beyond §5:** sleep/stillness/reading/exposure/trends reads, settings, account deletion, practitioner setup, templates, protocol draft edit/list/detail/sessions/complete, invite, "my enrollments", and a role-aware session `GET`. `/api/me` now uses `requireAuth` too.
+  - **Storage:** `server/storage/` now has an interface, a Drizzle implementation and an in-memory implementation (tests only). The auth rate limiter is per app instance.
+  - **Verification:**
+    - 82 tests pass, including the route tests for the §7 route fixtures, A1–A4, B5, B6, C10–C12 and the `requireAuth` sweep.
+    - Mutation checks: deliberately leaking `condition` from either serializer makes the matching test fail.
+    - An end-to-end run of the real server against Postgres (PGlite's wire-protocol server, from a scratch folder) passed 28 checks covering daily data, the Brief (log scale on), and the full study flow, including withdrawal and account deletion. Both migrations applied with `drizzle-kit migrate`.
 - **Standing rule (Mark, September 28):** all colors and fonts go through semantic design tokens (CSS variables in `index.css`, mapped in Tailwind), with no hex codes in components, so the palette is a single-file swap. Login.tsx and the placeholder Home get converted in step 9.
 
 ## Environment limits

@@ -69,6 +69,7 @@ export default function ScreenshotImport() {
   const parseFile = async (file: File): Promise<{ type: string; data: Record<string, any> }> => {
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("kind", "sleep");
 
     // 60-second timeout — OpenAI Vision can be slow
     const controller = new AbortController();
