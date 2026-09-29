@@ -66,6 +66,9 @@ describe("copy lint", () => {
     expect(flagged("const s = `Keep your streak going, ${name}`;")).toHaveLength(1);
     expect(flagged(`const cause = x; // causes nothing\nconst t = \`\${cause}\`;`)).toHaveLength(0);
     expect(flagged(`<p>An association, not a diagnosis.</p>`)).toHaveLength(0);
+    // Pattern headline (Mark, Sep 29): "followed" states an order in time, not a cause.
+    expect(flagged(`<p>Lower HRV followed 3 of your last 4 high-screen days.</p>`)).toHaveLength(0);
+    expect(flagged(`<p>High-screen days caused lower HRV.</p>`)).toHaveLength(1);
     expect(flagged(`<p>the smallest change commonly treated as meaningful</p>`)).toHaveLength(0);
     expect(flagged(`<p>Breathwork treated my anxiety</p>`)).toHaveLength(1);
     expect(flagged(`<p>A gentle treatment</p>`)).toHaveLength(1);

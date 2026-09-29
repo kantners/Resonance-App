@@ -107,6 +107,10 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
   - Recovery-Rule's level-2 row said "naming the likely cause". Under the wording rule (never "causes") it now reads "naming the pattern behind them if your logs show one". The copy lint caught this.
   - Morning-Check: manual entry, no fingertip or camera text.
   - Main: the week label shows its night count ("Steady · 7 of 7 nights").
+  - **Main, Brief copy fixes (Mark, September 29).** Applied in the app and in both design files (`design/screens/Main.html`, `design/source/Main.dc.html`):
+    - The pattern callout leads with the pattern, not last night. The headline was "Screen time was high yesterday — HRV is down 6 ms from your average." and is now "Lower HRV followed 3 of your last 4 high-screen days." The body and "An association, not a diagnosis." are unchanged. The copy lint self-test includes the new headline as allowed wording.
+    - Long game: "This is the number that matters most." → "This is the trend to watch."
+    - Checked the "Illness" tag: it isn't a selected state. In the canvas all five tags have `aria-pressed="false"` and identical styles; in the app all five use `r-chip`, which changes only when pressed. No change needed.
 - **Copy lint:** `treated as` is allowed (canvas: "commonly treated as meaningful"). Class names are ignored, and JSX prose is read separately, so apostrophes can't open fake strings. Self-tests cover each of these.
 - **Removed:** the unused `ui/chart.tsx` and the `recharts` dependency (flagged deprecated); the unused KEWT `DatePicker`/`TimePicker`; and KEWT's "always open on the Dashboard" hash reset.
 - **Build warnings:** the 5 esbuild `import.meta` warnings come from `vite.config.ts`, pulled in by the dev-only `server/vite.ts`. They're pre-existing and harmless in production (that path isn't loaded there).

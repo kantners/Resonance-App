@@ -322,15 +322,15 @@ function QuietCard({ brief }: { brief: BriefResponse }) {
 
 function PatternCard({ brief }: { brief: BriefResponse }) {
   const p = brief.pattern;
-  const down = p.hrvDiffFromBaselineMs != null ? Math.abs(Math.round(p.hrvDiffFromBaselineMs)) : null;
   return (
     <section aria-label="Pattern" className="r-card px-[18px] py-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <PulseIcon className="text-exposure" />
         <Eyebrow>PATTERN NOTED</Eyebrow>
       </div>
+      {/* Leads with the pattern, not last night (Mark, Sep 29). */}
       <p className="m-0 text-17 leading-[1.35] font-medium">
-        Screen time was high yesterday{down != null && <> — HRV is down {down} ms from your average</>}.
+        Lower HRV followed {p.seenAfter} of your last {p.highExposureDays} high-screen days.
       </p>
       <p className="m-0 text-13 leading-[1.45] text-ink-soft">
         {fmtMinutes(p.yesterdayMin)} vs. your {fmtMinutes(p.averageMin)} daily average.
@@ -363,7 +363,7 @@ function LongGameCard({ brief }: { brief: BriefResponse }) {
           <span className="font-mono text-16">{fmt0(lg.rhr.then)} → <strong className="font-medium">{fmt0(lg.rhr.now)} bpm</strong></span>
         </div>
       )}
-      <p className="m-0 text-13 leading-[1.45] text-ink-soft">{summary} This is the number that matters most.</p>
+      <p className="m-0 text-13 leading-[1.45] text-ink-soft">{summary} This is the trend to watch.</p>
     </section>
   );
 }
