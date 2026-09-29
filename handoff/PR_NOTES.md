@@ -67,8 +67,16 @@
 ## No interim peeking (Mark, September 28)
 - Until a protocol is completed, `GET /protocols/:id/results` returns progress and quality checks only (`resultsLocked: true`). Primary, secondary and exploratory contrasts and per-client deltas are all omitted, and the Study screen shows "Results unlock when the study is complete (prevents interim peeking)." Test: `results omit contrasts and per-client deltas until completedAt is set, then include them`.
 - **Extended to the export, for the same reason:** mid-study, the export's `results` and `sessions` sections hold only that line. `sessions.csv` pairs each revealed condition with its readings, so it would let anyone rebuild the contrasts. Methods and deviations stay available (the methods file is the pre-registration record).
-- **Residual:** the practitioner's session list and single-session `GET`s still return each revealed session's readings, because the Session screen needs them. A determined practitioner could tabulate these by hand. Options: accept (the practitioner runs every session anyway), or hide readings of sessions other than the one in progress. Your call.
+- ~~**Residual:** the practitioner's session list and single-session `GET`s still return each revealed session's readings.~~ Resolved by the outcome-blind decision below.
 - The demo protocol is seeded as completed so the full Study screen can be shown.
+
+## Outcome-blind practitioner (Mark, September 29)
+- **Decision:** the practitioner is outcome-blind for the whole study. Until the protocol is completed, no practitioner view of a session shows a reading value.
+- **Server:** `toPractitionerSession()` (the single serializer behind the single-session `GET`, the session list and the practitioner `PATCH` reply) omits pre/post rMSSD, heart rate and breaths per minute, and the client's relaxation ratings (also outcomes), until `completedAt`. Instead it sends `preRecorded`/`postRecorded`, the reading time, posture and device, and `valuesLocked: true`. After completion, all values are included. The client still sees their own readings.
+- **Export:** already covered. Mid-study, `sessions.csv` holds only the "Results unlock…" line; methods and deviations carry no reading values. The quality panel's device-mismatch list shows devices only.
+- **Client:** `PractitionerSessionDto` in `shared/api.ts` and `components/StudyReading.tsx`, which renders "Recorded ✓ · 2:14 PM · Polar H10 + Elite HRV" while `valuesLocked` is true and the values once unlocked. The Session screen (9b) uses it. No current screen lists sessions, so nothing visible changes today.
+- **Posture stays visible:** it's a procedure check (the reveal requires a face-up pre-reading), not an outcome.
+- **Test:** `outcome-blind: practitioner session views show 'recorded' with time and device, no values, until completion` covers the session `GET`, the list, the `PATCH` reply and the export, before and after completion, plus the client's own view. Mutation check: including the values unconditionally makes it fail.
 
 ## Step 9a (priority screens)
 - **Tokens:** every color and font family lives in `client/src/index.css` as a CSS variable with a semantic name (`ground`, `surface`, `ink`, `ink-soft`, `muted`, `neutral`, `line`, `control`, `track`, `hairline`, `wash`, `physiology*`, `exposure*`, `alert`), mapped in `tailwind.config.ts`. An audit finds no hex values or raw Tailwind palette colors in the client. `muted` is Mark's text token; shadcn's `muted-foreground` is an alias of it.

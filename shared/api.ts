@@ -127,6 +127,34 @@ export interface StudyResultsDto {
   clientDeltas: { clientCode: string; deltas: Record<string, number> }[];
 }
 
+/**
+ * A session as the practitioner sees it. Outcome-blind until the protocol is
+ * complete: `valuesLocked` is true and the reading values and relaxation
+ * ratings are absent; only `pre/postRecorded` with time and device are sent.
+ */
+export interface PractitionerSessionDto {
+  id: number;
+  enrollmentId: number;
+  clientCode: string;
+  visitNumber: number;
+  conditionRevealedAt: string | null;
+  condition?: string;
+  preRecorded: boolean;
+  preTakenAt: string | null;
+  prePosture: string | null;
+  preReadingDevice: string | null;
+  postRecorded: boolean;
+  postTakenAt: string | null;
+  postPosture: string | null;
+  postReadingDevice: string | null;
+  valuesLocked: boolean;
+  preRmssdMs?: number | null; preHrBpm?: number | null; preBreathsPerMin?: number | null;
+  postRmssdMs?: number | null; postHrBpm?: number | null; postBreathsPerMin?: number | null;
+  relaxPre?: number | null; relaxPost?: number | null;
+  clientGuess?: string | null;
+  completedAt: string | null;
+}
+
 export interface StudyArmDto { code: string; label: string; touch: boolean; intention: boolean; breathPacing: boolean; optional?: boolean }
 
 export interface ProtocolDto {

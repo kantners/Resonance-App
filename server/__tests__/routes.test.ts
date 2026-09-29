@@ -368,6 +368,44 @@ describe("Session Study", () => {
     expect(res.body.clientDeltas).toEqual([]);
   });
 
+  it("outcome-blind: practitioner session views show 'recorded' with time and device, no values, until completion", async () => {
+    const p = await practitioner("prac-blind@example.com");
+    const protocol = await lockedProtocol(p);
+    const { c, sessions } = await enrolledClient("client-blind@example.com", protocol.id);
+    const [s1, s2] = sessions;
+    const VALUE_KEYS = ["preRmssdMs", "preHrBpm", "preBreathsPerMin", "postRmssdMs", "postHrBpm", "postBreathsPerMin", "relaxPre", "relaxPost"];
+    const valueKeysIn = (body: unknown) => VALUE_KEYS.filter(k => allKeys(body).has(k));
+
+    await c.patch(`/api/study/sessions/${s1.id}/client`, { preReading: reading(46), relaxPre: 4 });
+    await p.post(`/api/study/sessions/${s1.id}/start`);
+    await c.patch(`/api/study/sessions/${s1.id}/client`, { postReading: reading(52), relaxPost: 7, clientGuess: "not_sure" });
+    const patched = await p.patch(`/api/study/sessions/${s1.id}`, { intentionHeldRating: 9, completed: true });
+
+    // Mid-study, every practitioner view of sessions: the session, the list, the PATCH reply, the export.
+    const one = await p.get(`/api/study/sessions/${s1.id}`);
+    const list = await p.get(`/api/study/protocols/${protocol.id}/sessions`);
+    for (const body of [one.body, list.body, patched.body]) expect(valueKeysIn(body)).toEqual([]);
+    expect(one.body).toMatchObject({
+      valuesLocked: true, preRecorded: true, postRecorded: true, preReadingDevice: DEVICE, postReadingDevice: DEVICE,
+    });
+    expect(one.body.preTakenAt).toBeTruthy();
+    expect(one.body.postTakenAt).toBeTruthy();
+    const other = list.body.find((s: any) => s.id === s2.id);
+    expect(other).toMatchObject({ preRecorded: false, postRecorded: false, preTakenAt: null });
+    expect((await p.get(`/api/study/protocols/${protocol.id}/export?part=sessions`)).text.trim())
+      .toBe("Results unlock when the study is complete (prevents interim peeking).");
+    // The client still sees their own readings.
+    expect((await c.get(`/api/study/sessions/${s1.id}`)).body).toMatchObject({ preRmssdMs: 46, postRmssdMs: 52, relaxPre: 4, relaxPost: 7 });
+
+    // Values unlock at completion.
+    expect((await p.post(`/api/study/protocols/${protocol.id}/complete`)).status).toBe(200);
+    const after = await p.get(`/api/study/sessions/${s1.id}`);
+    expect(after.body).toMatchObject({ valuesLocked: false, preRmssdMs: 46, postRmssdMs: 52, relaxPre: 4, relaxPost: 7 });
+    const afterList = await p.get(`/api/study/protocols/${protocol.id}/sessions`);
+    expect(afterList.body.find((s: any) => s.id === s1.id)).toMatchObject({ preRmssdMs: 46, postRmssdMs: 52 });
+    expect((await p.get(`/api/study/protocols/${protocol.id}/export?part=sessions`)).text).toContain(",46,");
+  });
+
   it("A1: enrollment takes rows in order from the list fixed at lock; the hash checks out after completion", async () => {
     const p = await practitioner("prac-a1@example.com");
     const protocol = await lockedProtocol(p, { targetClients: 6 });

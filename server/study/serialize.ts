@@ -9,9 +9,16 @@ const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pi
 
 const SESSION_COMMON = [
   "id", "enrollmentId", "visitNumber", "conditionRevealedAt",
-  "preTakenAt", "preRmssdMs", "preHrBpm", "prePosture", "preBreathsPerMin", "preReadingDevice",
-  "postTakenAt", "postRmssdMs", "postHrBpm", "postPosture", "postBreathsPerMin", "postReadingDevice",
-  "relaxPre", "relaxPost", "completedAt",
+  "preTakenAt", "prePosture", "preReadingDevice",
+  "postTakenAt", "postPosture", "postReadingDevice",
+  "completedAt",
+] as const satisfies readonly (keyof StudySession)[];
+
+/** Outcome values: readings and the client's relaxation ratings. */
+const SESSION_VALUES = [
+  "preRmssdMs", "preHrBpm", "preBreathsPerMin",
+  "postRmssdMs", "postHrBpm", "postBreathsPerMin",
+  "relaxPre", "relaxPost",
 ] as const satisfies readonly (keyof StudySession)[];
 
 const SESSION_PRACTITIONER_ONLY = [
@@ -23,13 +30,22 @@ const SESSION_PRACTITIONER_ONLY = [
  * the pre-reading), or once the protocol is complete. Never the sequence.
  * The client's guess is shown only after the session is complete, so it
  * can't colour the rest of the session.
+ *
+ * Outcome-blind (Mark, Sep 29): until the protocol is complete the
+ * practitioner sees only that each reading was recorded (time and device via
+ * SESSION_COMMON), never its values or the relaxation ratings.
  */
 export function toPractitionerSession(s: StudySession, protocol: StudyProtocol, clientCode: string) {
   const revealed = s.conditionRevealedAt != null || protocol.completedAt != null;
+  const complete = protocol.completedAt != null;
   return {
     ...pick(s, SESSION_COMMON),
     ...pick(s, SESSION_PRACTITIONER_ONLY),
     clientCode,
+    preRecorded: s.preTakenAt != null,
+    postRecorded: s.postTakenAt != null,
+    valuesLocked: !complete,
+    ...(complete ? pick(s, SESSION_VALUES) : {}),
     ...(revealed ? { condition: s.condition } : {}),
     ...(s.completedAt != null || protocol.completedAt != null ? { clientGuess: s.clientGuess } : {}),
   };
@@ -37,7 +53,7 @@ export function toPractitionerSession(s: StudySession, protocol: StudyProtocol, 
 
 /** Client view: never the condition or anything derived from it, until the protocol is complete. */
 export function toClientSession(s: StudySession, protocol: StudyProtocol) {
-  const base = { ...pick(s, SESSION_COMMON), clientGuess: s.clientGuess };
+  const base = { ...pick(s, SESSION_COMMON), ...pick(s, SESSION_VALUES), clientGuess: s.clientGuess };
   // conditionRevealedAt tells the client when the practitioner looked; harmless, but drop it anyway.
   const { conditionRevealedAt: _hidden, ...rest } = base;
   return protocol.completedAt != null ? { ...rest, condition: s.condition } : rest;
