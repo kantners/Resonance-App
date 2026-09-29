@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { STUDY_TEMPLATES } from "@shared/studyTemplates";
 import {
-  allocationHash, buildAllocationList, nextAllocationRow, pairedContrast, parseContrast,
+  allocationHash, buildAllocationList, isExploratoryContrast, nextAllocationRow, pairedContrast, parseContrast,
   practitionerResultsVisible, qualityPanel, RULE_VERSION, type AllocationRow, type SessionRecord,
 } from "../rules";
 import { badRequest, conflict, forbidden, idParam, notFound, requireAuth, userId } from "../http";
@@ -74,9 +74,26 @@ const zTouchProfile = z.record(z.string().min(1).max(40), z.enum(["hands_on", "h
   .refine(p => Object.keys(p).length > 0, "The touch profile needs at least one area");
 
 const arms = (p: StudyProtocol): StudyArm[] => JSON.parse(p.conditions);
+const optionalCodes = (a: StudyArm[]): Set<string> => new Set(a.filter(x => x.optional).map(x => x.code));
+
+/** Each non-optional arm against each optional arm (e.g. X − Rest), minus the pre-specified contrasts. */
+function exploratoryContrasts(p: StudyProtocol): string[] {
+  const a = arms(p);
+  const out: string[] = [];
+  for (const o of a.filter(x => x.optional)) {
+    for (const x of a.filter(y => !y.optional)) {
+      const c = `${x.code}-${o.code}`;
+      if (c !== p.primaryContrast && c !== p.secondaryContrast) out.push(c);
+    }
+  }
+  return out;
+}
 
 function validateContrasts(conditions: StudyArm[], primary: string, secondary?: string | null) {
   const codes = new Set(conditions.map(a => a.code));
+  if (isExploratoryContrast(primary, optionalCodes(conditions))) {
+    throw badRequest("The primary contrast can't use the optional arm; comparisons with it are exploratory");
+  }
   for (const c of [primary, secondary].filter(Boolean) as string[]) {
     const [x, y] = parseContrast(c);
     if (!codes.has(x as any) || !codes.has(y as any)) throw badRequest(`Contrast ${c} refers to an arm that doesn't exist`);
@@ -455,8 +472,13 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
       ruleVersion: RULE_VERSION,
       isDemo: await isDemoProtocol(protocol),
       progress: progress(protocol, activeClients, contexts),
+      // Contrasts are fixed at lock, like the analysis scale.
       primary: pairedContrast(records, protocol.primaryContrast, scale, protocol.targetClients),
-      secondary: protocol.secondaryContrast ? pairedContrast(records, protocol.secondaryContrast, scale, protocol.targetClients) : null,
+      secondary: protocol.secondaryContrast
+        ? pairedContrast(records, protocol.secondaryContrast, scale, protocol.targetClients,
+          isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
+        : null,
+      exploratory: exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, protocol.targetClients, true)),
       quality: qualityPanel(records, protocol.primaryContrast, protocol.readingDevice),
       perPractitionerVisible: practitionerResultsVisible(records, protocol.primaryContrast),
     };
@@ -487,8 +509,12 @@ function exportText(
     `Question: ${p.question}`,
     `Primary outcome: ${p.primaryOutcome}`,
     `Conditions:`,
-    ...armsList.map(a => `  ${a.code}: ${a.label} (touch ${a.touch ? "yes" : "no"}, intention ${a.intention ? "on" : "withheld"}, breath pacing ${a.breathPacing ? "yes" : "no"})`),
-    `Primary contrast: ${p.primaryContrast}; secondary: ${p.secondaryContrast ?? "none"}`,
+    ...armsList.map(a => `  ${a.code}: ${a.label} (touch ${a.touch ? "yes" : "no"}, intention ${a.intention ? "on" : "withheld"}, breath pacing ${a.breathPacing ? "yes" : "no"})${a.optional ? " [optional arm]" : ""}`),
+    `Primary contrast (fixed at lock): ${p.primaryContrast}`,
+    `Secondary contrast (fixed at lock): ${p.secondaryContrast ?? "none"}${p.secondaryContrast && isExploratoryContrast(p.secondaryContrast, new Set(armsList.filter(a => a.optional).map(a => a.code))) ? " (exploratory)" : ""}`,
+    ...(exploratoryContrasts(p).length
+      ? [`Exploratory contrasts (comparisons with the optional arm; not confirmatory): ${exploratoryContrasts(p).join(", ")}`]
+      : []),
     `Target: ${p.targetClients} clients; minimum days between sessions: ${p.minDaysBetween ?? "not set"}`,
     `Consent version: ${p.consentVersion}`,
     `Reading device (fixed at lock): ${p.readingDevice ?? "not set"}`,
@@ -531,11 +557,14 @@ function exportText(
     ...contexts.filter(c => (c.session.deviations ?? "").trim()).map(c => [c.enrollment.clientCode, c.session.visitNumber, c.session.deviations]),
   ]);
 
-  const fmt = (c: any) => c && c.ci ? [c.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, c.verdictText] : [c?.contrast ?? "", 0, "", "", "", "Too early to tell."];
+  const fmt = (role: string, c: any) => c && c.ci
+    ? [role, c.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, c.verdictText]
+    : [role, c?.contrast ?? "", 0, "", "", "", "Too early to tell."];
   const results = csv([
-    ["contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
-    fmt(r.primary),
-    ...(r.secondary ? [fmt(r.secondary)] : []),
+    ["role", "contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
+    fmt("primary", r.primary),
+    ...(r.secondary ? [fmt(r.secondary.exploratory ? "secondary (exploratory)" : "secondary", r.secondary)] : []),
+    ...r.exploratory.map((c: any) => fmt("exploratory", c)),
     [],
     ["blinding_correct", "blinding_guesses", "chance", "mean_intention_held", "total_drift", "sessions_with_deviations", "device_mismatches"],
     [r.quality.blinding.correct, r.quality.blinding.guesses, r.quality.blinding.chance, r.quality.meanIntentionHeld,

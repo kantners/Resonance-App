@@ -41,6 +41,6 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
       { code: "B", label: "Reiki only", touch: true, intention: true, breathPacing: false },
       { code: "C", label: "Breath + Reiki", touch: true, intention: true, breathPacing: true },
     ],
-    optionalArm: { code: "D", label: "Rest", touch: false, intention: false, breathPacing: false },
+    optionalArm: { code: "D", label: "Rest", touch: false, intention: false, breathPacing: false, optional: true },
   },
 ];

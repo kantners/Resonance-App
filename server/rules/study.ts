@@ -115,6 +115,7 @@ export function sessionDelta(s: Pick<SessionRecord, "preRmssdMs" | "postRmssdMs"
 
 export interface Contrast {
   contrast: string;                  // "A-B"
+  exploratory: boolean;              // involves an optional arm (e.g. the factorial's rest arm)
   pairs: number[];                   // d_i per client
   ci: MeanCI | null;                 // null when no client has both conditions
   rose: number; unchanged: number; fell: number;
@@ -143,7 +144,7 @@ export function formatEffect(x: number, scale: AnalysisScale): string {
  * Verdict: "Too early to tell" while n < target or the CI includes 0.
  */
 export function pairedContrast(
-  sessions: readonly SessionRecord[], contrast: string, scale: AnalysisScale, targetClients: number,
+  sessions: readonly SessionRecord[], contrast: string, scale: AnalysisScale, targetClients: number, exploratory = false,
 ): Contrast {
   const [x, y] = parseContrast(contrast);
   const byClient = new Map<number, { x?: number; y?: number }>();
@@ -158,10 +159,18 @@ export function pairedContrast(
   const pairs = [...byClient.values()]
     .filter(e => e.x !== undefined && e.y !== undefined)
     .map(e => e.x! - e.y!);
-  return contrastFromPairs(contrast, pairs, scale, targetClients);
+  return contrastFromPairs(contrast, pairs, scale, targetClients, exploratory);
 }
 
-export function contrastFromPairs(contrast: string, pairs: number[], scale: AnalysisScale, targetClients: number): Contrast {
+/** A contrast is exploratory when it involves an optional arm. */
+export function isExploratoryContrast(contrast: string, optionalCodes: ReadonlySet<string>): boolean {
+  const [x, y] = parseContrast(contrast);
+  return optionalCodes.has(x) || optionalCodes.has(y);
+}
+
+export function contrastFromPairs(
+  contrast: string, pairs: number[], scale: AnalysisScale, targetClients: number, exploratory = false,
+): Contrast {
   const ci = pairs.length ? meanCI95(pairs) : null;
   const eps = 1e-9;
   const rose = pairs.filter(d => d > eps).length;
@@ -175,10 +184,10 @@ export function contrastFromPairs(contrast: string, pairs: number[], scale: Anal
     verdictText = "Too early to tell.";
   } else {
     verdict = ci!.mean > 0 ? "observed_positive" : "observed_negative";
-    verdictText = `Observed in our sessions: ${contrast.replace("-", " minus ")} averaged ${formatEffect(ci!.mean, scale)} `
+    verdictText = `${exploratory ? "Exploratory. " : ""}Observed in our sessions: ${contrast.replace("-", " minus ")} averaged ${formatEffect(ci!.mean, scale)} `
       + `(95% range ${formatEffect(ci!.low!, scale)} to ${formatEffect(ci!.high!, scale)}) across ${pairs.length} clients.`;
   }
-  return { contrast, pairs, ci, rose, unchanged: pairs.length - rose - fell, fell, verdict, verdictText };
+  return { contrast, exploratory, pairs, ci, rose, unchanged: pairs.length - rose - fell, fell, verdict, verdictText };
 }
 
 export interface DeviceMismatch {

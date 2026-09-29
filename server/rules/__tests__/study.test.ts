@@ -139,6 +139,9 @@ describe("analysis (§4.5, A2, A3)", () => {
     expect(done.verdict).toBe("observed_positive");
     expect(done.verdictText).toMatch(/^Observed in our sessions/);
     expect(done.verdictText).not.toMatch(/prove/i);
+    const explor = pairedContrast(clear, "A-B", "linear", 4, true);
+    expect(explor.exploratory).toBe(true);
+    expect(explor.verdictText).toMatch(/^Exploratory\. Observed in our sessions/);
   });
 
   it("quality panel: blinding among primary-contrast sessions, ratings, drift, deviations", () => {

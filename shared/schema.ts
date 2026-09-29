@@ -355,6 +355,9 @@ export const zStudyArm = z.object({
   touch: z.boolean(),
   intention: z.boolean(),
   breathPacing: z.boolean(),
+  // An optional arm added on top of a template (e.g. rest in the factorial).
+  // Comparisons with it are exploratory and it can't be in the primary contrast.
+  optional: z.boolean().optional(),
 });
 export type StudyArm = z.infer<typeof zStudyArm>;
 export const zStudyArms = z.array(zStudyArm).min(2).max(4)

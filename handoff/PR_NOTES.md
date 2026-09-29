@@ -55,5 +55,14 @@
     - **Correction on that first run:** a stopped background task had left the previous server process running, so the new server failed to bind and the checks ran against the older process (same code, freshly migrated database). At Mark's request, the 28 checks were re-run from a clean start: a fresh PGlite, a fresh `drizzle-kit migrate` (16 tables, 0 users), and a freshly started server on a new port, whose own log shows it served all 55 requests. All 28 passed. Test processes are now stopped by port, not by task.
 - **Standing rule (Mark, September 28):** all colors and fonts go through semantic design tokens (CSS variables in `index.css`, mapped in Tailwind), with no hex codes in components, so the palette is a single-file swap. Login.tsx and the placeholder Home get converted in step 9.
 
+## Decisions after step 8 (Mark, September 28)
+- **1 and 3 agreed:** W counts calendar nights; the allocation hash includes a nonce.
+- **2 agreed:** withdrawal keeps an anonymised allocation tombstone. The Consent text must say so. The approved sentence is in `shared/consentCopy.ts` (`CONSENT_WITHDRAWAL_ALLOCATION_NOTE`), for the Consent screen (9b): "If you leave, Resonance keeps one anonymised allocation record (your slot number only, with no readings, answers or name) so the study's random order stays balanced." Please check the wording.
+- **4 agreed as the default:**
+  - The primary and secondary contrasts are stored on the protocol, frozen at lock and printed in the methods export, the same as `analysis_scale`. Tests cover edits after lock (409) and the export text.
+  - Arms can be flagged `optional` (the factorial's rest arm is). A primary contrast can't use an optional arm (400).
+  - Any comparison with an optional arm is labelled exploratory. That covers a secondary that uses it, plus automatic "arm − rest" contrasts for the arms not already compared. The labels appear in the results, the verdict text ("Exploratory. Observed…") and the export (`role` column; "(exploratory)" in methods).
+- **5 agreed:** keep `gpt-4o-mini`. `OPENAI_VISION_MODEL=gpt-4o-mini` is in `.env.example`. **To do before relying on it:** evaluate the model on real iOS Screen Time and Android Digital Wellbeing screenshots, checking digit accuracy, the hourly pickup bars and whether the confidence values are calibrated. Switch the model if needed.
+
 ## Environment limits
 - There's no local Postgres or Docker on the build machine, so `db:migrate`, `seed:demo` and `docker build` can't be run end-to-end locally. CI and Railway cover the build; the DB steps need a Postgres instance.

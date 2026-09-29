@@ -212,6 +212,47 @@ describe("Session Study", () => {
     expect(v2.body.version).toBe(2);
   });
 
+  it("contrasts are fixed at lock and printed in the methods export, like the analysis scale", async () => {
+    const p = await practitioner("prac-contrast@example.com");
+    const protocol = await lockedProtocol(p);
+    expect((await p.patch(`/api/study/protocols/${protocol.id}`, { primaryContrast: "B-C" })).status).toBe(409);
+    expect((await p.patch(`/api/study/protocols/${protocol.id}`, { secondaryContrast: "A-C" })).status).toBe(409);
+    expect((await p.patch(`/api/study/protocols/${protocol.id}`, { analysisScale: "ln" })).status).toBe(409);
+    const methods = (await p.get(`/api/study/protocols/${protocol.id}/export?part=methods`)).text;
+    expect(methods).toContain("Primary contrast (fixed at lock): A-B");
+    expect(methods).toContain("Secondary contrast (fixed at lock): B-C");
+    expect(methods).not.toContain("exploratory");
+  });
+
+  it("factorial with the optional rest arm: rest comparisons are exploratory; the primary can't use rest", async () => {
+    const f = STUDY_TEMPLATES.find(t => t.key === "deck_factorial")!;
+    const p = await practitioner("prac-factorial@example.com");
+    const body = (extra: Record<string, unknown>) => protocolBody({
+      question: f.question, primaryContrast: f.primaryContrast, secondaryContrast: f.secondaryContrast,
+      conditions: [...f.conditions, f.optionalArm], targetClients: 4, ...extra,
+    });
+    expect((await p.post("/api/study/protocols", body({ primaryContrast: "C-D" }))).status).toBe(400);
+    const created = await p.post("/api/study/protocols", body({ secondaryContrast: "C-D" }));
+    expect(created.status).toBe(201);
+    const locked = await p.post(`/api/study/protocols/${created.body.id}/lock`);
+    expect(locked.status).toBe(200);
+
+    const r = await p.get(`/api/study/protocols/${created.body.id}/results`);
+    expect(r.body.primary.contrast).toBe("C-A");
+    expect(r.body.primary.exploratory).toBe(false);
+    expect(r.body.secondary).toMatchObject({ contrast: "C-D", exploratory: true });
+    expect(r.body.exploratory.map((c: any) => c.contrast)).toEqual(["A-D", "B-D"]);
+    expect(r.body.exploratory.every((c: any) => c.exploratory)).toBe(true);
+
+    const methods = (await p.get(`/api/study/protocols/${created.body.id}/export?part=methods`)).text;
+    expect(methods).toContain("D: Rest (touch no, intention withheld, breath pacing no) [optional arm]");
+    expect(methods).toContain("Secondary contrast (fixed at lock): C-D (exploratory)");
+    expect(methods).toContain("Exploratory contrasts (comparisons with the optional arm; not confirmatory): A-D, B-D");
+    const results = (await p.get(`/api/study/protocols/${created.body.id}/export?part=results`)).text;
+    expect(results).toContain("secondary (exploratory),C-D");
+    expect(results).toContain("exploratory,A-D");
+  });
+
   it("no enrollment before lock; non-practitioners can't create protocols", async () => {
     const p = await practitioner("prac-draft@example.com");
     const draft = await p.post("/api/study/protocols", protocolBody());
