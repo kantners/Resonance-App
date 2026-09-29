@@ -458,6 +458,8 @@ describe("Session Study", () => {
         await p.patch(`/api/study/sessions/${s.id}`, { completed: true, intentionHeldRating: 8 });
       }
     }
+    // A third client enrolled but not yet seen: none of their visits are held.
+    await enrolledClient("client-peek-3@example.com", protocol.id);
     const url = `/api/study/protocols/${protocol.id}`;
 
     // Before completion: progress and quality only.
@@ -486,9 +488,16 @@ describe("Session Study", () => {
     expect(after.body.primary.pairs).toHaveLength(2);
     expect(after.body.secondary.contrast).toBe("B-C");
     expect(after.body.clientDeltas).toHaveLength(2);
+    // Quality counts held sessions only, before and after completion.
+    expect(before.body.quality.totalSessions).toBe(6);
+    expect(after.body.quality.totalSessions).toBe(6);
     for (const cd of after.body.clientDeltas) expect(Object.keys(cd.deltas).sort()).toEqual(["A", "B", "C"]);
     const sessionsCsv = (await p.get(`${url}/export?part=sessions`)).text;
-    expect(sessionsCsv.trim().split("\n")).toHaveLength(1 + 6);
+    // Every scheduled visit is listed; the third client's unheld visits have no readings or completion time.
+    const rows = sessionsCsv.trim().split("\n").slice(1).map(l => l.split(","));
+    expect(rows).toHaveLength(9);
+    expect(rows.filter(r => r[23] !== "")).toHaveLength(6);          // completed_at
+    expect(rows.filter(r => r[0] === "C-003").every(r => r[5] === "" && r[11] === "")).toBe(true);   // no pre/post rMSSD
     expect((await p.get(`${url}/export?part=results`)).text).toContain("primary,A-B,2,");
   });
 

@@ -82,5 +82,12 @@
 - **Removed:** the unused `ui/chart.tsx` and the `recharts` dependency (flagged deprecated); the unused KEWT `DatePicker`/`TimePicker`; and KEWT's "always open on the Dashboard" hash reset.
 - **Build warnings:** the 5 esbuild `import.meta` warnings come from `vite.config.ts`, pulled in by the dev-only `server/vite.ts`. They're pre-existing and harmless in production (that path isn't loaded there).
 
+## Step 10 (demo data)
+- `npm run seed:demo` refuses to run without `ALLOW_DEMO_SEED=true` and takes the password only from `DEMO_PASSWORD` (C11). Re-running replaces the demo data.
+- The seed generates candidate data from a seeded RNG, runs it through the real rule engine, and keeps the first candidate that reproduces the canvas. It then prints the numbers. Verified through the live server as the demo user: Steady · 7 of 7, 48.6 / 55.1, both_out "Noted", 22 / 30, pattern 3 of 4 (5h 47m vs 4h 11m), long game 44 → 48 ms and 57 → 55 bpm, longest quiet 1h 53m (6 stretches, 94 pickups, 23 after 9 PM), stillness 45 min, fasting 14h 20m / 16h. Study: 6/12 clients, 20/36 sessions, A−B +0.67 (−1.9 to +3.2), B−C +1.40 (−0.9 to +3.7), 5 of 12 guesses, 9.1 / 10, 2 of 20 deviations.
+- Dates are relative to the day the seed runs ("today" plays the canvas's Friday). With log scale on, the ranges read 45.3–50.3 ms (agreed).
+- The demo user is also the demo practitioner. The study is seeded as completed (Mark's instruction), with seven demo clients; the seventh is part-way through, allocated so that their two sessions don't touch the canvas contrasts.
+- **Bug found while verifying:** after completion, the quality panel counted every scheduled visit, including visits never held ("2 of 21"). It now counts held (completed) sessions, and a route test shows the old behavior fails. The per-client deltas also skip clients with no held sessions.
+
 ## Environment limits
 - There's no local Postgres or Docker on the build machine, so `db:migrate`, `seed:demo` and `docker build` can't be run end-to-end locally. CI and Railway cover the build; the DB steps need a Postgres instance.

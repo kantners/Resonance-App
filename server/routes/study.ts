@@ -464,6 +464,7 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
         deviations: c.session.deviations, withdrawn: c.enrollment.withdrawnAt != null,
       }));
     const scale = protocol.analysisScale as "linear" | "ln";   // A2: from the locked protocol, never the env flag
+    const heldIds = new Set(contexts.filter(c => c.session.completedAt != null).map(c => c.session.id));
     // No interim peeking (Mark, Sep 28): until the protocol is complete, only
     // progress and quality checks are returned; no contrasts, deltas or verdicts.
     const unlocked = protocol.completedAt != null;
@@ -484,7 +485,9 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
           isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
         : null,
       exploratory: !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, protocol.targetClients, true)),
-      quality: qualityPanel(records, protocol.primaryContrast, protocol.readingDevice),
+      // Quality counts sessions actually held (completed), not every scheduled visit:
+      // after completion, unheld visits would otherwise inflate the denominators.
+      quality: qualityPanel(records.filter(r => heldIds.has(r.id)), protocol.primaryContrast, protocol.readingDevice),
       perPractitionerVisible: practitionerResultsVisible(records, protocol.primaryContrast),
       // Per-client deltas by condition (revealed sessions only), for the slope chart.
       clientDeltas: !unlocked ? [] : [...new Set(records.filter(r => !r.withdrawn).map(r => r.clientCode))].map(clientCode => ({
@@ -493,7 +496,7 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
           .filter(r => r.clientCode === clientCode && !r.withdrawn)
           .map(r => [r.condition, sessionDelta(r, scale)])
           .filter(([, d]) => d != null)),
-      })),
+      })).filter(c => Object.keys(c.deltas).length > 0),
     };
   }
 }

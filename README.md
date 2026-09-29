@@ -49,6 +49,7 @@ npm test           # Vitest: rule engine, HANDOFF §7 fixtures, copy lint
 npm run build      # production build into dist/
 npm run db:migrate # apply migrations/ to DATABASE_URL
 npm run db:generate # after editing shared/schema.ts: write the next migration
+ALLOW_DEMO_SEED=true DEMO_PASSWORD=… npm run seed:demo   # local demo account (never on a public server)
 npm start          # run the production build
 ```
 
