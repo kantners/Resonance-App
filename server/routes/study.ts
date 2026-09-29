@@ -10,7 +10,7 @@ import {
 } from "@shared/schema";
 import { STUDY_TEMPLATES } from "@shared/studyTemplates";
 import {
-  allocationHash, buildAllocationList, isExploratoryContrast, nextAllocationRow, pairedContrast, parseContrast,
+  allocationHash, buildAllocationList, isExploratoryContrast, nextAllocationRow, sessionDelta, pairedContrast, parseContrast,
   practitionerResultsVisible, qualityPanel, RULE_VERSION, type AllocationRow, type SessionRecord,
 } from "../rules";
 import { badRequest, conflict, forbidden, idParam, notFound, requireAuth, userId } from "../http";
@@ -19,6 +19,7 @@ import {
   toPractitionerProtocol, toPractitionerSession,
 } from "../study/serialize";
 import { type SessionContext, UniqueViolation } from "../storage/types";
+import type { StudyResultsDto } from "@shared/api";
 import type { RouteDeps } from ".";
 
 const zIsoInstant = z.string().refine(s => !Number.isNaN(Date.parse(s)) && /T/.test(s), "Expected an ISO date-time");
@@ -448,7 +449,7 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
     };
   }
 
-  async function results(protocol: StudyProtocol, activeClients: number, contexts: SessionContext[]) {
+  async function results(protocol: StudyProtocol, activeClients: number, contexts: SessionContext[]): Promise<StudyResultsDto> {
     // Only sessions whose condition has been revealed can carry readings on
     // both sides, so nothing here exposes an unrevealed condition (A4).
     const records: SessionRecord[] = contexts
@@ -463,6 +464,9 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
         deviations: c.session.deviations, withdrawn: c.enrollment.withdrawnAt != null,
       }));
     const scale = protocol.analysisScale as "linear" | "ln";   // A2: from the locked protocol, never the env flag
+    // No interim peeking (Mark, Sep 28): until the protocol is complete, only
+    // progress and quality checks are returned; no contrasts, deltas or verdicts.
+    const unlocked = protocol.completedAt != null;
     return {
       protocolId: protocol.id,
       version: protocol.version,
@@ -472,20 +476,31 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
       ruleVersion: RULE_VERSION,
       isDemo: await isDemoProtocol(protocol),
       progress: progress(protocol, activeClients, contexts),
+      resultsLocked: !unlocked,
       // Contrasts are fixed at lock, like the analysis scale.
-      primary: pairedContrast(records, protocol.primaryContrast, scale, protocol.targetClients),
-      secondary: protocol.secondaryContrast
+      primary: !unlocked ? null : pairedContrast(records, protocol.primaryContrast, scale, protocol.targetClients),
+      secondary: unlocked && protocol.secondaryContrast
         ? pairedContrast(records, protocol.secondaryContrast, scale, protocol.targetClients,
           isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
         : null,
-      exploratory: exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, protocol.targetClients, true)),
+      exploratory: !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, protocol.targetClients, true)),
       quality: qualityPanel(records, protocol.primaryContrast, protocol.readingDevice),
       perPractitionerVisible: practitionerResultsVisible(records, protocol.primaryContrast),
+      // Per-client deltas by condition (revealed sessions only), for the slope chart.
+      clientDeltas: !unlocked ? [] : [...new Set(records.filter(r => !r.withdrawn).map(r => r.clientCode))].map(clientCode => ({
+        clientCode,
+        deltas: Object.fromEntries(records
+          .filter(r => r.clientCode === clientCode && !r.withdrawn)
+          .map(r => [r.condition, sessionDelta(r, scale)])
+          .filter(([, d]) => d != null)),
+      })),
     };
   }
 }
 
 // ─── Export (§4.6): CSV + methods text ────────────────────────────────────────
+export const LOCKED_UNTIL_COMPLETE = "Results unlock when the study is complete (prevents interim peeking).";
+
 function csvCell(v: unknown): string {
   if (v == null) return "";
   const s = v instanceof Date ? v.toISOString() : String(v);
@@ -560,22 +575,27 @@ function exportText(
   const fmt = (role: string, c: any) => c && c.ci
     ? [role, c.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, c.verdictText]
     : [role, c?.contrast ?? "", 0, "", "", "", "Too early to tell."];
+  const locked = LOCKED_UNTIL_COMPLETE;
   const results = csv([
-    ["role", "contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
-    fmt("primary", r.primary),
-    ...(r.secondary ? [fmt(r.secondary.exploratory ? "secondary (exploratory)" : "secondary", r.secondary)] : []),
-    ...r.exploratory.map((c: any) => fmt("exploratory", c)),
+    ...(r.resultsLocked ? [[locked]] : [
+      ["role", "contrast", "n_clients", "mean_difference", "ci95_low", "ci95_high", "verdict"],
+      fmt("primary", r.primary),
+      ...(r.secondary ? [fmt(r.secondary.exploratory ? "secondary (exploratory)" : "secondary", r.secondary)] : []),
+      ...r.exploratory.map((c: any) => fmt("exploratory", c)),
+    ]),
     [],
     ["blinding_correct", "blinding_guesses", "chance", "mean_intention_held", "total_drift", "sessions_with_deviations", "device_mismatches"],
     [r.quality.blinding.correct, r.quality.blinding.guesses, r.quality.blinding.chance, r.quality.meanIntentionHeld,
       r.quality.totalDrift, r.quality.sessionsWithDeviations, r.quality.deviceMismatches.length],
   ]);
 
-  const sections = { methods, sessions, deviations, results };
+  // Per-session readings with their conditions would let anyone rebuild the
+  // contrasts, so the sessions file also waits for completion.
+  const sections = { methods, sessions: r.resultsLocked ? `${locked}\n` : sessions, deviations, results };
   if (part !== "all") return banner + sections[part];
   return banner + [
     `=== methods.txt ===`, methods,
-    `=== sessions.csv ===`, sessions,
+    `=== sessions.csv ===`, sections.sessions,
     `=== deviations.csv ===`, deviations,
     `=== results.csv ===`, results,
   ].join("\n");

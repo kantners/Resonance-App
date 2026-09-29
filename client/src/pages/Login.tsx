@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useHashLocation } from "wouter/use-hash-location";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { errorText } from "@/lib/api";
+import { deviceTimeZone } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 
 type Mode = "login" | "register";
 
@@ -11,175 +12,69 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [, navigate] = useHashLocation();
-  const { toast } = useToast();
   const qc = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async () => {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      const body: any = { email, password };
-      if (mode === "register" && firstName) body.firstName = firstName;
+      const body: Record<string, string> = { email, password };
+      if (mode === "register") {
+        if (firstName) body.firstName = firstName;
+        body.timeZone = deviceTimeZone();   // dates are always the user's local dates (B6)
+      }
       return apiRequest("POST", endpoint, body);
     },
     onSuccess: async (data: any) => {
-      // Set user data directly — no invalidate, avoids loading flicker
-      const user = data?.user ?? data;
-      qc.setQueryData(["/api/me"], user);
-    },
-    onError: (e: any) => {
-      toast({ title: mode === "login" ? "Login failed" : "Registration failed", description: e.message, variant: "destructive" });
+      qc.setQueryData(["/api/me"], data?.user ?? data);
+      await qc.invalidateQueries({ queryKey: ["/api/me"] });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    mutation.mutate();
-  };
+  const input = "w-full h-12 box-border px-3.5 rounded-control border border-control bg-surface text-16 text-ink";
 
   return (
-    <div style={{
-      minHeight: "100svh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#F3F4F1",
-      padding: "1.5rem",
-    }}>
-      {/* Brand */}
-      <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-        <div style={{
-          fontFamily: "'Newsreader', Georgia, serif",
-          fontSize: "2.5rem",
-          fontWeight: 500,
-          color: "#15191C",
-          marginBottom: "0.25rem",
-        }}>
-          Resonance
-        </div>
-        <div style={{
-          fontSize: "0.8125rem",
-          color: "#5A6168",
-          fontWeight: 500,
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-        }}>
-          Blue Ember Wellness
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-ground px-6 py-6">
+      <div className="text-center mb-10">
+        <div className="font-serif text-40 font-medium text-ink mb-1">Resonance</div>
+        <div className="font-mono text-12 tracking-header text-muted uppercase">Blue Ember Wellness</div>
       </div>
 
-      {/* Card */}
-      <div style={{
-        width: "100%",
-        maxWidth: "400px",
-        background: "white",
-        borderRadius: "1rem",
-        padding: "2rem",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
-        border: "1px solid rgba(0,0,0,0.06)",
-      }}>
-        {/* Mode toggle */}
-        <div style={{ display: "flex", marginBottom: "1.75rem", background: "#f3f4f6", borderRadius: "0.5rem", padding: "0.25rem" }}>
+      <div className="w-full max-w-[400px] r-card p-6 box-border">
+        <div role="tablist" className="flex mb-6 bg-track rounded-control p-1">
           {(["login", "register"] as Mode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{
-                flex: 1,
-                padding: "0.5rem",
-                borderRadius: "0.375rem",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                transition: "all 0.15s",
-                background: mode === m ? "white" : "transparent",
-                color: mode === m ? "var(--color-primary, #15191C)" : "#6b7280",
-                boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-              }}
-            >
-              {m === "login" ? "Sign In" : "Create Account"}
+            <button key={m} role="tab" aria-selected={mode === m} type="button" onClick={() => setMode(m)}
+              className={cn("flex-1 min-h-[40px] rounded-[8px] border-0 cursor-pointer text-14",
+                mode === m ? "bg-surface text-ink font-semibold shadow-[0_1px_2px_rgb(var(--shadow)/0.12)]" : "bg-transparent text-ink-soft font-medium")}>
+              {m === "login" ? "Sign in" : "Create account"}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <form onSubmit={e => { e.preventDefault(); if (email && password) mutation.mutate(); }} className="flex flex-col gap-4">
           {mode === "register" && (
-            <div>
-              <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-muted)", display: "block", marginBottom: "0.375rem" }}>First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                placeholder="First name"
-                autoComplete="off"
-                style={{ width: "100%", padding: "0.625rem 0.75rem", borderRadius: "0.5rem", border: "1.5px solid #e5e7eb", fontSize: "1rem", background: "#fafafa", color: "#111827", boxSizing: "border-box" }}
-              />
-            </div>
+            <label className="flex flex-col gap-1.5 text-13 font-medium text-ink-soft">First name
+              <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="given-name" className={input} />
+            </label>
           )}
-
-          <div>
-            <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-muted)", display: "block", marginBottom: "0.375rem" }}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoComplete="off"
-              style={{ width: "100%", padding: "0.625rem 0.75rem", borderRadius: "0.5rem", border: "1.5px solid #e5e7eb", fontSize: "1rem", background: "#fafafa", color: "#111827", boxSizing: "border-box" }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-muted)", display: "block", marginBottom: "0.375rem" }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Your password"
-              required
-              autoComplete="off"
-              style={{ width: "100%", padding: "0.625rem 0.75rem", borderRadius: "0.5rem", border: "1.5px solid #e5e7eb", fontSize: "1rem", background: "#fafafa", color: "#111827", boxSizing: "border-box" }}
-            />
-            {mode === "register" && (
-              <p style={{ margin: "0.375rem 0 0", fontSize: "0.75rem", color: "var(--color-text-faint)" }}>Minimum 8 characters</p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={mutation.isPending || !email || !password}
-            style={{
-              marginTop: "0.5rem",
-              width: "100%",
-              padding: "0.75rem",
-              borderRadius: "0.5rem",
-              border: "none",
-              background: "var(--color-primary, #15191C)",
-              color: "white",
-              fontSize: "1rem",
-              fontWeight: 700,
-              cursor: mutation.isPending ? "not-allowed" : "pointer",
-              opacity: (mutation.isPending || !email || !password) ? 0.65 : 1,
-              transition: "opacity 0.15s",
-            }}
-          >
-            {mutation.isPending ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+          <label className="flex flex-col gap-1.5 text-13 font-medium text-ink-soft">Email
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" className={input} />
+          </label>
+          <label className="flex flex-col gap-1.5 text-13 font-medium text-ink-soft">Password
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              autoComplete={mode === "login" ? "current-password" : "new-password"} className={input} />
+            {mode === "register" && <span className="text-12 font-normal text-muted">At least 8 characters</span>}
+          </label>
+          {mutation.error && <p role="alert" className="m-0 text-13 text-alert">{errorText(mutation.error)}</p>}
+          <button type="submit" disabled={mutation.isPending || !email || !password}
+            className="mt-1 min-h-[52px] rounded-tile border-0 bg-ink text-surface text-16 font-semibold cursor-pointer disabled:opacity-50">
+            {mutation.isPending ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
-
-        {mode === "login" && (
-          <p style={{ textAlign: "center", marginTop: "1.25rem", fontSize: "0.8125rem", color: "var(--color-text-faint)" }}>
-            New to Resonance?{" "}
-            <button onClick={() => setMode("register")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary, #15191C)", fontWeight: 600, fontSize: "0.8125rem" }}>
-              Create an account
-            </button>
-          </p>
-        )}
       </div>
+
+      <p className="mt-6 text-12 text-muted text-center max-w-[340px] leading-[1.5]">
+        A self-monitoring tool, not a medical device. <a href="#/privacy">Privacy</a> · <a href="#/terms">Terms</a>
+      </p>
     </div>
   );
 }

@@ -300,7 +300,7 @@ export default function ScreenshotImport() {
                   </span>
                 </p>
                 <p className="screenshot-review-hint">
-            {errorMsg ? <span style={{ color: "#dc2626" }}>{errorMsg}</span> : "Edit any field, then confirm to save."}
+            {errorMsg ? <span className="text-alert">{errorMsg}</span> : "Edit any field, then confirm to save."}
           </p>
               </div>
             </div>

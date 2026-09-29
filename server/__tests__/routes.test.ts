@@ -236,6 +236,7 @@ describe("Session Study", () => {
     expect(created.status).toBe(201);
     const locked = await p.post(`/api/study/protocols/${created.body.id}/lock`);
     expect(locked.status).toBe(200);
+    expect((await p.post(`/api/study/protocols/${created.body.id}/complete`)).status).toBe(200);   // results unlock at completion
 
     const r = await p.get(`/api/study/protocols/${created.body.id}/results`);
     expect(r.body.primary.contrast).toBe("C-A");
@@ -358,10 +359,13 @@ describe("Session Study", () => {
     expect(after.list).toEqual([start.body.condition, null, null]);
     expect(allKeys((await p.get(`/api/study/sessions/${s2.id}`)).body).has("condition")).toBe(false);
     expect(allKeys((await p.get(`/api/study/sessions/${s3.id}`)).body).has("condition")).toBe(false);
-    // Nor do results or the export expose an unrevealed condition.
+    // Nor do results or the export expose an unrevealed condition: mid-study, the
+    // sessions export and the contrasts are withheld entirely (no interim peeking).
     const exp = await p.get(`/api/study/protocols/${protocol.id}/export?part=sessions`);
-    const rows = exp.text.trim().split("\n").slice(1).map(l => l.split(",")[2]);
-    expect(rows).toEqual([start.body.condition, "", ""]);
+    expect(exp.text.trim()).toBe("Results unlock when the study is complete (prevents interim peeking).");
+    const res = await p.get(`/api/study/protocols/${protocol.id}/results`);
+    expect(allKeys(res.body).has("condition")).toBe(false);
+    expect(res.body.clientDeltas).toEqual([]);
   });
 
   it("A1: enrollment takes rows in order from the list fixed at lock; the hash checks out after completion", async () => {
@@ -418,13 +422,21 @@ describe("Session Study", () => {
       });
       await p.patch(`/api/study/sessions/${s.id}`, { completed: true, intentionHeldRating: 9 });
     }
+    // Mid-study: quality checks (including device mismatches) are visible; contrasts aren't.
+    const mid = await p.get(`/api/study/protocols/${protocol.id}/results`);
+    expect(mid.status).toBe(200);
+    expect(mid.body.analysisScale).toBe("ln");
+    expect(mid.body.quality.deviceMismatches.map((m: any) => m.sessionId)).toEqual([sessions[2].id]);
+    expect(mid.body.progress).toMatchObject({ clientsEnrolled: 1, clientsComplete: 1, sessionsComplete: 3 });
+
+    expect((await p.post(`/api/study/protocols/${protocol.id}/complete`)).status).toBe(200);
     const r = await p.get(`/api/study/protocols/${protocol.id}/results`);
-    expect(r.status).toBe(200);
-    expect(r.body.analysisScale).toBe("ln");
     expect(r.body.primary.pairs).toHaveLength(1);
+    // ln scale (the protocol's), A − B: post-readings were 44 + visit index against a pre of 40.
+    const list = (await p.get(`/api/study/protocols/${protocol.id}/sessions`)).body;
+    const post = (cond: string) => 44 + list.findIndex((s: any) => s.condition === cond);
+    expect(r.body.primary.pairs[0]).toBeCloseTo(Math.log(post("A") / 40) - Math.log(post("B") / 40), 10);
     expect(r.body.primary.verdictText).toBe("Too early to tell.");
-    expect(r.body.quality.deviceMismatches.map((m: any) => m.sessionId)).toEqual([sessions[2].id]);
-    expect(r.body.progress).toMatchObject({ clientsEnrolled: 1, clientsComplete: 1, sessionsComplete: 3 });
 
     const methods = await p.get(`/api/study/protocols/${protocol.id}/export?part=methods`);
     expect(methods.text).toContain(protocol.allocationSha256);
@@ -432,6 +444,52 @@ describe("Session Study", () => {
     expect(methods.text).toContain(DEVICE);
     expect(methods.text).toContain(RULE_VERSION);
     expect(methods.text).not.toMatch(/ILLUSTRATIVE/);
+  });
+
+  it("results omit contrasts and per-client deltas until completedAt is set, then include them", async () => {
+    const p = await practitioner("prac-peek@example.com");
+    const protocol = await lockedProtocol(p, { targetClients: 6 });
+    for (const [n, email] of ["client-peek-1@example.com", "client-peek-2@example.com"].entries()) {
+      const { c, sessions } = await enrolledClient(email, protocol.id);
+      for (const [i, s] of sessions.entries()) {
+        await c.patch(`/api/study/sessions/${s.id}/client`, { preReading: reading(40) });
+        await p.post(`/api/study/sessions/${s.id}/start`);
+        await c.patch(`/api/study/sessions/${s.id}/client`, { postReading: reading(42 + i + n), clientGuess: "not_sure" });
+        await p.patch(`/api/study/sessions/${s.id}`, { completed: true, intentionHeldRating: 8 });
+      }
+    }
+    const url = `/api/study/protocols/${protocol.id}`;
+
+    // Before completion: progress and quality only.
+    const before = await p.get(`${url}/results`);
+    expect(before.status).toBe(200);
+    expect(before.body.resultsLocked).toBe(true);
+    expect(before.body.primary).toBeNull();
+    expect(before.body.secondary).toBeNull();
+    expect(before.body.exploratory).toEqual([]);
+    expect(before.body.clientDeltas).toEqual([]);
+    expect(allKeys(before.body).has("pairs")).toBe(false);
+    expect(allKeys(before.body).has("ci")).toBe(false);
+    expect(before.body.progress).toMatchObject({ clientsComplete: 2, sessionsComplete: 6 });
+    expect(before.body.quality.blinding.guesses).toBe(4);
+    // The export can't be used to peek either.
+    const LOCKED = "Results unlock when the study is complete (prevents interim peeking).";
+    expect((await p.get(`${url}/export?part=results`)).text).toContain(LOCKED);
+    expect((await p.get(`${url}/export?part=sessions`)).text.trim()).toBe(LOCKED);
+    expect((await p.get(`${url}/export?part=methods`)).status).toBe(200);
+
+    // After completion: everything.
+    expect((await p.post(`${url}/complete`)).status).toBe(200);
+    const after = await p.get(`${url}/results`);
+    expect(after.body.resultsLocked).toBe(false);
+    expect(after.body.primary.contrast).toBe("A-B");
+    expect(after.body.primary.pairs).toHaveLength(2);
+    expect(after.body.secondary.contrast).toBe("B-C");
+    expect(after.body.clientDeltas).toHaveLength(2);
+    for (const cd of after.body.clientDeltas) expect(Object.keys(cd.deltas).sort()).toEqual(["A", "B", "C"]);
+    const sessionsCsv = (await p.get(`${url}/export?part=sessions`)).text;
+    expect(sessionsCsv.trim().split("\n")).toHaveLength(1 + 6);
+    expect((await p.get(`${url}/export?part=results`)).text).toContain("primary,A-B,2,");
   });
 
   it("C11: demo accounts can't join real studies, and real clients can't join demo studies", async () => {

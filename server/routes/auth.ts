@@ -6,6 +6,7 @@ import { zHrvSource } from "@shared/schema";
 import { badRequest, conflict, HttpError, requireAuth, userId } from "../http";
 import { AUTH_RATE_LIMIT, createRateLimiter } from "../middleware/rateLimit";
 import { UniqueViolation } from "../storage/types";
+import type { MeResponse } from "@shared/api";
 import type { RouteDeps } from ".";
 
 function isValidTimeZone(tz: string): boolean {
@@ -19,7 +20,7 @@ function isValidTimeZone(tz: string): boolean {
 
 const zTimeZone = z.string().refine(isValidTimeZone, "Unknown IANA time zone");
 
-export function publicUser(u: User, isPractitioner: boolean) {
+export function publicUser(u: User, isPractitioner: boolean): MeResponse {
   return {
     id: u.id,
     email: u.email,

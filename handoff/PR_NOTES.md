@@ -64,5 +64,23 @@
   - Any comparison with an optional arm is labelled exploratory. That covers a secondary that uses it, plus automatic "arm − rest" contrasts for the arms not already compared. The labels appear in the results, the verdict text ("Exploratory. Observed…") and the export (`role` column; "(exploratory)" in methods).
 - **5 agreed:** keep `gpt-4o-mini`. `OPENAI_VISION_MODEL=gpt-4o-mini` is in `.env.example`. **To do before relying on it:** evaluate the model on real iOS Screen Time and Android Digital Wellbeing screenshots, checking digit accuracy, the hourly pickup bars and whether the confidence values are calibrated. Switch the model if needed.
 
+## No interim peeking (Mark, September 28)
+- Until a protocol is completed, `GET /protocols/:id/results` returns progress and quality checks only (`resultsLocked: true`). Primary, secondary and exploratory contrasts and per-client deltas are all omitted, and the Study screen shows "Results unlock when the study is complete (prevents interim peeking)." Test: `results omit contrasts and per-client deltas until completedAt is set, then include them`.
+- **Extended to the export, for the same reason:** mid-study, the export's `results` and `sessions` sections hold only that line. `sessions.csv` pairs each revealed condition with its readings, so it would let anyone rebuild the contrasts. Methods and deviations stay available (the methods file is the pre-registration record).
+- **Residual:** the practitioner's session list and single-session `GET`s still return each revealed session's readings, because the Session screen needs them. A determined practitioner could tabulate these by hand. Options: accept (the practitioner runs every session anyway), or hide readings of sessions other than the one in progress. Your call.
+- The demo protocol is seeded as completed so the full Study screen can be shown.
+
+## Step 9a (priority screens)
+- **Tokens:** every color and font family lives in `client/src/index.css` as a CSS variable with a semantic name (`ground`, `surface`, `ink`, `ink-soft`, `muted`, `neutral`, `line`, `control`, `track`, `hairline`, `wash`, `physiology*`, `exposure*`, `alert`), mapped in `tailwind.config.ts`. An audit finds no hex values or raw Tailwind palette colors in the client. `muted` is Mark's text token; shadcn's `muted-foreground` is an alias of it.
+- **Screens:** Main (with the B8 first-run/building state and the B7 night count), Recovery-Rule, Morning-Check (manual, source required), Sleep, Exposure-Manual and Study (draft → lock with the ethics reminder, the hash, the fixed scale/device/contrasts, mismatch flags, results locked until completion). Also a Log tab landing page, Settings, Privacy/Terms working text (to review before any public release), Login in tokens, and placeholders for the 9b screens.
+- **Copy changes from the canvas:**
+  - Recovery-Rule: the label gate is "at least 19 nights (14 + at least 5 of 7)"; with the flag on, the HRV range is described as log-scale; Step 2 says "the nights logged in the last 7 days".
+  - Recovery-Rule's level-2 row said "naming the likely cause". Under the wording rule (never "causes") it now reads "naming the pattern behind them if your logs show one". The copy lint caught this.
+  - Morning-Check: manual entry, no fingertip or camera text.
+  - Main: the week label shows its night count ("Steady · 7 of 7 nights").
+- **Copy lint:** `treated as` is allowed (canvas: "commonly treated as meaningful"). Class names are ignored, and JSX prose is read separately, so apostrophes can't open fake strings. Self-tests cover each of these.
+- **Removed:** the unused `ui/chart.tsx` and the `recharts` dependency (flagged deprecated); the unused KEWT `DatePicker`/`TimePicker`; and KEWT's "always open on the Dashboard" hash reset.
+- **Build warnings:** the 5 esbuild `import.meta` warnings come from `vite.config.ts`, pulled in by the dev-only `server/vite.ts`. They're pre-existing and harmless in production (that path isn't loaded there).
+
 ## Environment limits
 - There's no local Postgres or Docker on the build machine, so `db:migrate`, `seed:demo` and `docker build` can't be run end-to-end locally. CI and Railway cover the build; the DB steps need a Postgres instance.

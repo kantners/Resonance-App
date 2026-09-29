@@ -10,6 +10,7 @@ import {
   RULE_VERSION, type NightInput,
 } from "../rules";
 import { badRequest, dateParam, idParam, notFound, rangeQuery, requireAuth, userId, zLocalDate } from "../http";
+import type { BriefResponse } from "@shared/api";
 import type { RouteDeps } from ".";
 
 export function toNight(s: SleepLog): NightInput {
@@ -144,7 +145,7 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
       return { date: d, hrv: n?.hrv ?? null, rhr: n?.rhr ?? null, state: n ? nightStateOn(nights, d, flag) : null };
     });
 
-    res.json({
+    const body: BriefResponse = {
       date,
       ruleVersion: RULE_VERSION,
       hrvLogScale: flag,
@@ -193,7 +194,8 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
         stillnessMin: stillness.reduce((a, s) => a + s.minutes, 0) + breathwork.reduce((a, s) => a + s.durationMin, 0),
       },
       pattern: brief.pattern,
-    });
+    };
+    res.json(body);
   });
 
   app.post("/api/nights/:date/tags", requireAuth, async (req, res) => {
