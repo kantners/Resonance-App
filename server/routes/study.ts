@@ -11,7 +11,7 @@ import {
 import { STUDY_TEMPLATES } from "@shared/studyTemplates";
 import {
   allocationHash, buildAllocationList, isExploratoryContrast, nextAllocationRow, sessionDelta, pairedContrast, parseContrast,
-  practitionerResultsVisible, qualityPanel, RULE_VERSION, type AllocationRow, type SessionRecord,
+  practitionerResultsVisible, qualityPanel, RESULTS_LOCKED_TEXT, RULE_VERSION, type AllocationRow, type SessionRecord,
 } from "../rules";
 import { badRequest, conflict, forbidden, idParam, notFound, requireAuth, userId } from "../http";
 import {
@@ -479,12 +479,12 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
       progress: progress(protocol, activeClients, contexts),
       resultsLocked: !unlocked,
       // Contrasts are fixed at lock, like the analysis scale.
-      primary: !unlocked ? null : pairedContrast(records, protocol.primaryContrast, scale, protocol.targetClients),
+      primary: !unlocked ? null : pairedContrast(records, protocol.primaryContrast, scale, unlocked),
       secondary: unlocked && protocol.secondaryContrast
-        ? pairedContrast(records, protocol.secondaryContrast, scale, protocol.targetClients,
+        ? pairedContrast(records, protocol.secondaryContrast, scale, unlocked,
           isExploratoryContrast(protocol.secondaryContrast, optionalCodes(arms(protocol))))
         : null,
-      exploratory: !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, protocol.targetClients, true)),
+      exploratory: !unlocked ? [] : exploratoryContrasts(protocol).map(c => pairedContrast(records, c, scale, unlocked, true)),
       // Quality counts sessions actually held (completed), not every scheduled visit:
       // after completion, unheld visits would otherwise inflate the denominators.
       quality: qualityPanel(records.filter(r => heldIds.has(r.id)), protocol.primaryContrast, protocol.readingDevice),
@@ -502,7 +502,7 @@ export function registerStudyRoutes(app: Express, deps: RouteDeps) {
 }
 
 // ─── Export (§4.6): CSV + methods text ────────────────────────────────────────
-export const LOCKED_UNTIL_COMPLETE = "Results unlock when the study is complete (prevents interim peeking).";
+export const LOCKED_UNTIL_COMPLETE = RESULTS_LOCKED_TEXT;
 
 function csvCell(v: unknown): string {
   if (v == null) return "";
@@ -577,7 +577,7 @@ function exportText(
 
   const fmt = (role: string, c: any) => c && c.ci
     ? [role, c.contrast, c.ci.n, c.ci.mean, c.ci.low, c.ci.high, c.verdictText]
-    : [role, c?.contrast ?? "", 0, "", "", "", "Too early to tell."];
+    : [role, c?.contrast ?? "", c?.pairs.length ?? 0, "", "", "", c?.verdictText ?? ""];
   const locked = LOCKED_UNTIL_COMPLETE;
   const results = csv([
     ...(r.resultsLocked ? [[locked]] : [

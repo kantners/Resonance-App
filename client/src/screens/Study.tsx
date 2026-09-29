@@ -18,15 +18,29 @@ export default function StudyScreen() {
   const { data: me } = useMe();
   const { data: protocols, isLoading } = useQuery<ProtocolDto[]>({ queryKey: ["/api/study/protocols"], enabled: !!me?.isPractitioner });
 
+  const [picked, setPicked] = useState<number | null>(null);
+
   if (me && !me.isPractitioner) return <SetUpPractitioner />;
-  const current = protocols?.find(p => p.lockedAt && !p.completedAt) ?? protocols?.[0];
+  // Default: the running study; the switcher shows the others (e.g. a completed one).
+  const running = protocols?.find(p => p.lockedAt && !p.completedAt) ?? protocols?.[0];
+  const current = protocols?.find(p => p.id === picked) ?? running;
   return (
     <TabScreen label="Session Study">
       <TabHeader kicker="PRACTITIONER" title="Session Study" />
       {isLoading && <p className="m-0 text-14 text-muted">Loading…</p>}
+      {protocols && protocols.length > 1 && (
+        <div role="radiogroup" aria-label="Study" className="flex flex-wrap gap-1.5">
+          {protocols.map(p => (
+            <button key={p.id} type="button" role="radio" aria-checked={current?.id === p.id} className="r-chip"
+              onClick={() => setPicked(p.id)}>
+              {!p.lockedAt ? "Draft" : p.completedAt ? "Completed" : "Running"} · v{p.version}
+            </button>
+          ))}
+        </div>
+      )}
       {protocols && !current && <DraftProtocol />}
       {current && !current.lockedAt && <DraftProtocol draft={current} />}
-      {current?.lockedAt && <LockedStudy protocol={current} />}
+      {current?.lockedAt && <LockedStudy key={current.id} protocol={current} />}
     </TabScreen>
   );
 }
@@ -254,14 +268,18 @@ function LockedStudy({ protocol: p }: { protocol: ProtocolDto }) {
                 <ContrastLine title={`Primary · ${x} minus ${y}`} c={r.primary} eff={eff} unit={unit} />
                 {r.secondary && <ContrastLine title={`Secondary · ${r.secondary.contrast.replace("-", " minus ")}`} c={r.secondary} eff={eff} unit={unit} />}
                 {r.exploratory.map(c => <ContrastLine key={c.contrast} title={`Exploratory · ${c.contrast.replace("-", " minus ")}`} c={c} eff={eff} unit={unit} />)}
-                <Verdict primary={r.primary} r={r} labelX={label(x)} labelY={label(y)} />
+                <Verdict primary={r.primary} labelX={label(x)} labelY={label(y)} />
               </>
             )}
           </section>
 
           <section aria-label="Quality checks" className="r-card px-[18px] py-4 flex flex-col gap-2">
             <h2 className="m-0 text-15 font-semibold">Is the study holding?</h2>
-            <QualityRow label={`Clients who guessed ${x} vs. ${y} correctly`} value={`${r.quality.blinding.correct} of ${r.quality.blinding.guesses}`} />
+            {/* Counts guesses (one per A or B session), not clients. */}
+            <span className="text-14">
+              <span className="font-mono font-medium">{r.quality.blinding.correct} of {r.quality.blinding.guesses}</span>
+              {" "}guesses correct ({x} vs {y})
+            </span>
             <span className="text-12 text-ink-soft -mt-1">
               {r.quality.blinding.guesses === 0 ? "No guesses yet." : r.quality.blinding.correct / r.quality.blinding.guesses <= 0.6
                 ? "Chance is about half. No sign clients can tell."
@@ -324,16 +342,13 @@ function ContrastLine({ title, c, eff, unit }: { title: string; c: ContrastDto; 
   );
 }
 
-function Verdict({ primary: c, r, labelX, labelY }: { primary: ContrastDto; r: StudyResultsDto; labelX: string; labelY: string }) {
+/** The primary contrast's verdict, from the server (it depends on the study's status). */
+function Verdict({ primary: c, labelX, labelY }: { primary: ContrastDto; labelX: string; labelY: string }) {
   const n = c.pairs.length;
-  if (n === 0) return <p className="m-0 text-14 leading-[1.45]"><strong>No completed pairs yet.</strong></p>;
-  const counts = `${c.rose} of ${n} clients rose with ${labelX.toLowerCase()} compared with ${labelY.toLowerCase()}, ${c.unchanged} ${c.unchanged === 1 ? "was" : "were"} unchanged, ${c.fell} fell.`;
-  const includesZero = [r.primary, r.secondary].filter(Boolean).every(x => x!.ci?.low == null || (x!.ci.low <= 0 && (x!.ci.high ?? 0) >= 0));
+  const counts = n === 0 ? "" : `${c.rose} of ${n} clients rose with ${labelX.toLowerCase()} compared with ${labelY.toLowerCase()}, ${c.unchanged} ${c.unchanged === 1 ? "was" : "were"} unchanged, ${c.fell} fell.`;
   return (
     <p className="m-0 text-14 leading-[1.45]">
-      <strong>{c.verdict === "too_early" ? "Too early to tell." : c.verdictText}</strong>{" "}
-      {c.verdict === "too_early" && (includesZero ? (r.secondary ? "Both ranges include zero. " : "The range includes zero. ") : `Fewer than ${r.progress.targetClients} clients so far. `)}
-      {counts}
+      <strong>{c.verdictText}</strong>{counts && " "}{counts}
     </p>
   );
 }

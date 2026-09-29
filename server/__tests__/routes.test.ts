@@ -508,7 +508,9 @@ describe("Session Study", () => {
     const list = (await p.get(`/api/study/protocols/${protocol.id}/sessions`)).body;
     const post = (cond: string) => 44 + list.findIndex((s: any) => s.condition === cond);
     expect(r.body.primary.pairs[0]).toBeCloseTo(Math.log(post("A") / 40) - Math.log(post("B") / 40), 10);
-    expect(r.body.primary.verdictText).toBe("Too early to tell.");
+    // Completed with one paired client: no range, so no measurable difference (never "too early").
+    expect(r.body.primary.verdict).toBe("no_difference");
+    expect(r.body.primary.verdictText).toMatch(/^No measurable difference in this study/);
 
     const methods = await p.get(`/api/study/protocols/${protocol.id}/export?part=methods`);
     expect(methods.text).toContain(protocol.allocationSha256);

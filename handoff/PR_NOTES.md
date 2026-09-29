@@ -89,7 +89,7 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
 - Until a protocol is completed, `GET /protocols/:id/results` returns progress and quality checks only (`resultsLocked: true`). Primary, secondary and exploratory contrasts and per-client deltas are all omitted, and the Study screen shows "Results unlock when the study is complete (prevents interim peeking)." Test: `results omit contrasts and per-client deltas until completedAt is set, then include them`.
 - **Extended to the export, for the same reason:** mid-study, the export's `results` and `sessions` sections hold only that line. `sessions.csv` pairs each revealed condition with its readings, so it would let anyone rebuild the contrasts. Methods and deviations stay available (the methods file is the pre-registration record).
 - ~~**Residual:** the practitioner's session list and single-session `GET`s still return each revealed session's readings.~~ Resolved by the outcome-blind decision below.
-- The demo protocol is seeded as completed so the full Study screen can be shown.
+- Demo: a running protocol (results locked) and a completed one (full results); see "Study verdicts and demo" below.
 
 ## Outcome-blind practitioner (Mark, September 29)
 - **Decision:** the practitioner is outcome-blind for the whole study. Until the protocol is completed, no practitioner view of a session shows a reading value.
@@ -120,8 +120,24 @@ Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure 
 - `npm run seed:demo` refuses to run without `ALLOW_DEMO_SEED=true` and takes the password only from `DEMO_PASSWORD` (C11). Re-running replaces the demo data.
 - The seed generates candidate data from a seeded RNG, runs it through the real rule engine, and keeps the first candidate that reproduces the canvas. It then prints the numbers. Verified through the live server as the demo user: Steady · 7 of 7, 48.6 / 55.1, both_out "Noted", 22 / 30, pattern 3 of 4 (5h 47m vs 4h 11m), long game 44 → 48 ms and 57 → 55 bpm, longest quiet 1h 53m (6 stretches, 94 pickups, 23 after 9 PM), stillness 45 min, fasting 14h 20m / 16h. Study: 6/12 clients, 20/36 sessions, A−B +0.67 (−1.9 to +3.2), B−C +1.40 (−0.9 to +3.7), 5 of 12 guesses, 9.1 / 10, 2 of 20 deviations.
 - Dates are relative to the day the seed runs ("today" plays the canvas's Friday). With log scale on, the ranges read 45.3–50.3 ms (agreed).
-- The demo user is also the demo practitioner. The study is seeded as completed (Mark's instruction), with seven demo clients; the seventh is part-way through, allocated so that their two sessions don't touch the canvas contrasts.
+- The demo user is also the demo practitioner. The canvas study is seeded as running (6 of 12 complete, a seventh client part-way through, allocated so their two sessions don't touch the canvas contrasts), alongside a second, completed demo study. See "Study verdicts and demo" below.
 - **Bug found while verifying:** after completion, the quality panel counted every scheduled visit, including visits never held ("2 of 21"). It now counts held (completed) sessions, and a route test shows the old behavior fails. The per-client deltas also skip clients with no held sessions.
+
+## Study verdicts and demo (Mark, September 29)
+- **The verdict depends on the study's status** (`studyVerdict` in `server/rules/study.ts`, which replaces the old "n < target or CI includes 0 → Too early to tell" rule):
+  - Running: results locked ("Results unlock when the study is complete (prevents interim peeking)."), progress and quality only, as before.
+  - Completed, likely range includes zero: "No measurable difference in this study: the likely range includes zero."
+  - Completed, likely range excludes zero: "Observed in our sessions: an increase of 2.0 ms (likely range +0.9 ms to +3.0 ms)." ("a decrease" when negative; on the ln scale the size is a percent.) The contrast is named by the line it sits under; exploratory contrasts keep the "Exploratory." prefix.
+  - A completed study never says "too early to tell". **My addition:** with fewer than 2 paired clients there is no range at all, so the verdict reads "No measurable difference in this study: fewer than 2 clients had both conditions, so there is no likely range."
+  - The target-client count no longer affects the verdict: completion is the practitioner's call (`/complete`), and the protocol states where it stops.
+  - **HANDOFF §7 fixture changed:** the six canvas pairs (+0.67, −1.9 to +3.2) expected "Too early to tell". The fixture test now asserts results-locked while running and "No measurable difference…" once completed.
+  - Rule tests cover all three cases, plus a check that no status or data produces "too early" or "prove". Mutation check: returning "Too early to tell." for a completed study whose range includes zero fails 3 of them.
+- **Two demo protocols,** both belonging to the demo practitioner (`is_demo`, "Illustrative data"):
+  - (a) **Running:** the canvas study. 6 of 12 clients, 20 of 36 sessions, results locked, 5 of 12 guesses correct, 9.1 / 10. It's the Study tab's default.
+  - (b) **Completed:** 12 of 12 clients, 36 of 36 sessions. A − B +0.33 ms (−0.9 to +1.6) reads "No measurable difference…"; B − C +2.0 ms (+0.9 to +3.0) reads "Observed in our sessions: an increase…"; 11 of 24 guesses correct. The seed stops with an error if the data ever stops producing both completed verdicts.
+  - The Study tab shows a Running/Completed switcher when there's more than one protocol.
+  - Because of the outcome-blind rule, the running demo's session views show "Recorded ✓" without values.
+- **Guess line:** "5 of 12 guesses correct (A vs B)" (it counts guesses, one per A or B session, not clients). Updated in the app and in both Study design files. The canvas's "Too early to tell." verdict on the Study design is left as drawn: it shows results for a running study, which the no-peeking rule already replaced.
 
 ## Morning posture, treated like the device (Mark, September 29)
 - **Set once:** `users.hrv_posture` (seated or face-up) is chosen on the first-run Brief or in Settings and pre-selected on Morning-Check. A user with no set posture (anyone from before this change) adopts the posture of their first reading. Migration `0002` backfills it from each user's latest morning reading, and backfills each night's posture from its morning reading.

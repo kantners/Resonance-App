@@ -193,10 +193,107 @@ const PAIRS_BA: [number, number][] = [[5, 7], [8, 8], [3, 6], [7, 6], [6, 9], [9
 const B_MINUS_C = [3.103, 4.167, -1.154, 2.039, -1.154, 1.4];                           // +1.4, −0.9 to +3.7
 const GUESS_CORRECT = [true, false, false, true, false, false, true, true, false, false, true, false];  // 5 of 12 (A and B sessions)
 
+// ─── Study: a second, completed demo protocol (12 of 12 clients) ─────────────
+// The canvas's six clients plus six more. A − B's range includes zero (no measurable
+// difference); B − C's excludes it (observed), so both completed verdicts show.
+const DONE_PAIRS_BA: [number, number][] = [...PAIRS_BA, [6, 5], [4, 6], [7, 7], [5, 4], [8, 6], [6, 8]];
+const DONE_B_MINUS_C = [...B_MINUS_C, 2.5, 3.0, 1.8, 2.2, 3.4, 2.6];
+const DONE_GUESS_CORRECT = [...GUESS_CORRECT, true, false, true, false, false, true, true, false, false, true, false, true];  // 11 of 24
+
+interface StudySeed {
+  label: string;
+  lockedDaysAgo: number;
+  clients: number;               // enrolled demo clients
+  completedClients: number;      // clients with all three sessions; the rest have two
+  pairsBA: [number, number][];   // per completed client: [delta under B, delta under A]
+  bMinusC: number[];
+  guessCorrect: boolean[];       // one per A or B session, in order
+  deviationsAt: number[];        // session numbers (0-based) with a logged deviation
+  completed: boolean;
+  listOk: (list: ReturnType<typeof buildAllocationList>) => boolean;
+}
+
 async function main() {
   const { db, pool } = await import("../server/db");
   const { createDbStorage } = await import("../server/storage/db");
   const storage = createDbStorage(db);
+
+  /** One locked demo protocol with its clients and held sessions. */
+  async function seedStudy(practitionerId: number, o: StudySeed) {
+    const tpl = STUDY_TEMPLATES.find(t => t.key === "intention_vs_touch")!;
+    const protocol = await storage.createProtocol({
+      practitionerId, version: 1, supersedesId: null,
+      question: tpl.question, primaryOutcome: tpl.primaryOutcome,
+      primaryContrast: tpl.primaryContrast, secondaryContrast: tpl.secondaryContrast,
+      conditions: JSON.stringify(tpl.conditions), design: "crossover", targetClients: 12, minDaysBetween: 7,
+      withholdingProcedure: "Setting the condition (after the eye pillow is on, about ten seconds, same posture every time): "
+        + "A: [what you do, silently, to offer Reiki]. B and C: \"Okay, turn off my Reiki transmission.\" "
+        + "At each 5-minute chime: A: silently reaffirm on; B and C: repeat the off phrase. "
+        + "On noticing drift during B or C: repeat the off phrase, and add one to the drift count after the session.",
+      commitmentText: "I can withhold intention. If A and B don't differ, I'll conclude that intention didn't measurably change this outcome, and present it that way.",
+      closingReikiForAll: true, consentVersion: "1", analysisScale: "linear", readingDevice: DEVICE,
+    });
+    // The allocation list, as at lock.
+    let list = null as ReturnType<typeof buildAllocationList> | null;
+    for (let s = 1; !list; s++) {
+      const g = rng(s * 31 + (o.completed ? 7 : 0));
+      const candidate = buildAllocationList(["A", "B", "C"], 12, n => g.int(n));
+      if (o.listOk(candidate)) list = candidate;
+    }
+    const nonce = randomBytes(16).toString("hex");
+    const lockedAt = new Date(Date.now() - o.lockedDaysAgo * 86_400_000);
+    await storage.lockProtocol(protocol.id, {
+      lockedAt, allocationList: JSON.stringify(list), allocationNonce: nonce, allocationSha256: allocationHash(nonce, list),
+    });
+
+    let guessIdx = 0, sessions = 0, guesses = 0, guessesCorrect = 0;
+    const ratings: number[] = [];
+    for (let c = 0; c < o.clients; c++) {
+      const row = list[c];
+      const full = c < o.completedClients;
+      const client = await storage.createUser({
+        email: `demo-client-${o.label}-${c + 1}@resonance.local`, passwordHash: await bcrypt.hash(randomBytes(12).toString("hex"), 10),
+        firstName: null, isDemo: true, timeZone,
+      });
+      const consentedAt = new Date(lockedAt.getTime() + (c + 1) * 3 * 86_400_000);
+      const enrollment = await storage.createEnrollmentWithSessions({
+        protocolId: protocol.id, clientUserId: client.id, clientCode: `C-${String(row.index + 1).padStart(3, "0")}`,
+        consentVersion: "1", consentedAt, touchProfile: JSON.stringify({ back: "hands_on", front: "hovering" }),
+        touchProfileLockedAt: consentedAt, allocationIndex: row.index, conditionSequence: JSON.stringify(row.sequence),
+        sequenceBlock: row.block,
+      }, row.sequence);
+      const contexts = (await storage.listSessionContexts(protocol.id)).filter(x => x.enrollment.id === enrollment.id);
+      for (const ctx of contexts.slice(0, full ? 3 : 2)) {
+        const cond = ctx.session.condition;
+        const [bDelta, aDelta] = full ? o.pairsBA[c] : [0, 5];
+        const delta = cond === "A" ? aDelta : cond === "B" ? bDelta : full ? bDelta - o.bMinusC[c] : 2;
+        const pre = 38 + (c % 7) * 2 + ctx.session.visitNumber;
+        const when = new Date(consentedAt.getTime() + ctx.session.visitNumber * 7 * 86_400_000);
+        let guess: string | null = null;
+        if (full && (cond === "A" || cond === "B")) {
+          const right = o.guessCorrect[guessIdx++];
+          guess = right ? cond : cond === "A" ? "B" : "A";
+          guesses++; if (right) guessesCorrect++;
+        } else if (full) guess = "C";
+        const rating = sessions < 18 ? 9 : 10;   // running: mean 9.1 over 20 sessions
+        ratings.push(rating);
+        await storage.updateSession(ctx.session.id, {
+          conditionRevealedAt: when,
+          preTakenAt: when.toISOString(), preRmssdMs: pre, preHrBpm: 64, prePosture: "face_up", preReadingDevice: DEVICE,
+          postTakenAt: new Date(when.getTime() + 75 * 60000).toISOString(), postRmssdMs: pre + delta, postHrBpm: 60,
+          postPosture: "face_up", postReadingDevice: DEVICE,
+          relaxPre: 4, relaxPost: 7, clientGuess: guess, intentionHeldRating: rating, driftCount: cond === "A" ? 0 : 1,
+          checklist: JSON.stringify({ spokenGreeting: true, chimePositions: true, faceUpReadings: true, sameRoom: true }),
+          deviations: o.deviationsAt.includes(sessions)
+            ? (sessions % 2 ? "Music played from a different speaker." : "Session started 10 minutes late.") : null,
+          closingReikiGiven: true, completedAt: new Date(when.getTime() + 90 * 60000),
+        });
+        sessions++;
+      }
+    }
+    if (o.completed) await storage.completeProtocol(protocol.id, new Date(Date.now() - 7 * 86_400_000));
+    return { protocol, sessions, guesses, guessesCorrect, meanRating: ratings.reduce((a, b) => a + b, 0) / ratings.length };
+  }
 
   const found = search();
   console.log(`Canvas data found (candidate ${found.seed}).`);
@@ -261,87 +358,35 @@ async function main() {
   await storage.createReading(demo.id, { date: y, startedAt: at(y, "21:40"), medium: "ereader", durationMin: 35, title: null });
   await storage.startFast(demo.id, new Date(Date.now() - (14 * 60 + 20) * 60000).toISOString(), 16);
 
-  // ── Study: the demo user is the practitioner ───────────────────────────────
+  // ── Study: the demo user is the practitioner, with two demo protocols ──────
+  // (a) running: 6 of 12 clients, 20 of 36 sessions, results locked (the canvas numbers,
+  //     the Study tab's default); (b) completed: 12 of 12, 36 of 36, full results.
   const practitioner = await storage.createPractitioner(demo.id, "Blue Ember Wellness (demo)");
-  const tpl = STUDY_TEMPLATES.find(t => t.key === "intention_vs_touch")!;
-  const protocol = await storage.createProtocol({
-    practitionerId: practitioner.id, version: 1, supersedesId: null,
-    question: tpl.question, primaryOutcome: tpl.primaryOutcome,
-    primaryContrast: tpl.primaryContrast, secondaryContrast: tpl.secondaryContrast,
-    conditions: JSON.stringify(tpl.conditions), design: "crossover", targetClients: 12, minDaysBetween: 7,
-    withholdingProcedure: "Setting the condition (after the eye pillow is on, about ten seconds, same posture every time): "
-      + "A: [what you do, silently, to offer Reiki]. B and C: \"Okay, turn off my Reiki transmission.\" "
-      + "At each 5-minute chime: A: silently reaffirm on; B and C: repeat the off phrase. "
-      + "On noticing drift during B or C: repeat the off phrase, and add one to the drift count after the session.",
-    commitmentText: "I can withhold intention. If A and B don't differ, I'll conclude that intention didn't measurably change this outcome, and present it that way.",
-    closingReikiForAll: true, consentVersion: "1", analysisScale: "linear", readingDevice: DEVICE,
+  const running = await seedStudy(practitioner.id, {
+    label: "run", lockedDaysAgo: 60, clients: 7, completedClients: 6,
+    pairsBA: PAIRS_BA, bMinusC: B_MINUS_C, guessCorrect: GUESS_CORRECT, deviationsAt: [4, 13], completed: false,
+    // The 7th client's row must start A,C or C,A so their two sessions leave the canvas contrasts untouched.
+    listOk: l => ["AC", "CA"].includes(l[6].sequence.slice(0, 2).join("")),
   });
-  // The allocation list, as at lock. Find an RNG seed whose 7th row starts A,C or C,A,
-  // so the in-progress client's two sessions leave the canvas contrasts untouched.
-  let list = null as ReturnType<typeof buildAllocationList> | null;
-  for (let s = 1; !list; s++) {
-    const g = rng(s * 31);
-    const candidate = buildAllocationList(["A", "B", "C"], 12, n => g.int(n));
-    if (["AC", "CA"].includes(candidate[6].sequence.slice(0, 2).join(""))) list = candidate;
-  }
-  const nonce = randomBytes(16).toString("hex");
-  const lockedAt = new Date(Date.now() - 60 * 86_400_000);
-  await storage.lockProtocol(protocol.id, {
-    lockedAt, allocationList: JSON.stringify(list), allocationNonce: nonce, allocationSha256: allocationHash(nonce, list),
+  const done = await seedStudy(practitioner.id, {
+    label: "done", lockedDaysAgo: 200, clients: 12, completedClients: 12,
+    pairsBA: DONE_PAIRS_BA, bMinusC: DONE_B_MINUS_C, guessCorrect: DONE_GUESS_CORRECT, deviationsAt: [7, 19, 30], completed: true,
+    listOk: () => true,
   });
-
-  let guessIdx = 0, sessionCount = 0;
-  const ratings: number[] = [];
-  for (let c = 0; c < 7; c++) {
-    const row = list[c];
-    const client = await storage.createUser({
-      email: `demo-client-${c + 1}@resonance.local`, passwordHash: await bcrypt.hash(randomBytes(12).toString("hex"), 10),
-      firstName: null, isDemo: true, timeZone,
-    });
-    const consentedAt = new Date(lockedAt.getTime() + (c + 1) * 3 * 86_400_000);
-    const enrollment = await storage.createEnrollmentWithSessions({
-      protocolId: protocol.id, clientUserId: client.id, clientCode: `C-${String(row.index + 1).padStart(3, "0")}`,
-      consentVersion: "1", consentedAt, touchProfile: JSON.stringify({ back: "hands_on", front: "hovering" }),
-      touchProfileLockedAt: consentedAt, allocationIndex: row.index, conditionSequence: JSON.stringify(row.sequence),
-      sequenceBlock: row.block,
-    }, row.sequence);
-    const contexts = (await storage.listSessionContexts(protocol.id)).filter(x => x.enrollment.id === enrollment.id);
-    const visits = c < 6 ? 3 : 2;   // the 7th client is part-way through
-    for (const ctx of contexts.slice(0, visits)) {
-      const cond = ctx.session.condition;
-      const [bDelta, aDelta] = c < 6 ? PAIRS_BA[c] : [0, 5];
-      const delta = cond === "A" ? aDelta : cond === "B" ? bDelta : c < 6 ? bDelta - B_MINUS_C[c] : 2;
-      const pre = 38 + c * 2 + ctx.session.visitNumber;
-      const when = new Date(consentedAt.getTime() + ctx.session.visitNumber * 7 * 86_400_000);
-      const inContrast = cond === "A" || cond === "B";
-      let guess: string | null = null;
-      if (c < 6 && inContrast) guess = GUESS_CORRECT[guessIdx++] ? cond : cond === "A" ? "B" : "A";
-      else if (c < 6) guess = "C";
-      const rating = sessionCount < 18 ? 9 : 10;   // mean 9.1 over 20 sessions
-      ratings.push(rating);
-      await storage.updateSession(ctx.session.id, {
-        conditionRevealedAt: when,
-        preTakenAt: when.toISOString(), preRmssdMs: pre, preHrBpm: 64, prePosture: "face_up", preReadingDevice: DEVICE,
-        postTakenAt: new Date(when.getTime() + 75 * 60000).toISOString(), postRmssdMs: pre + delta, postHrBpm: 60,
-        postPosture: "face_up", postReadingDevice: DEVICE,
-        relaxPre: 4, relaxPost: 7, clientGuess: guess, intentionHeldRating: rating, driftCount: cond === "A" ? 0 : 1,
-        checklist: JSON.stringify({ spokenGreeting: true, chimePositions: true, faceUpReadings: true, sameRoom: true }),
-        deviations: sessionCount === 4 ? "Session started 10 minutes late." : sessionCount === 13 ? "Music played from a different speaker." : null,
-        closingReikiGiven: true, completedAt: new Date(when.getTime() + 90 * 60000),
-      });
-      sessionCount++;
-    }
-  }
-  // Seeded as completed so the full Study screen (results) can be shown (Mark, Sep 28).
-  await storage.completeProtocol(protocol.id, new Date(Date.now() - 86_400_000));
 
   // Make sure no stale computed statuses linger for the demo user.
   await db.delete(dailyStatus).where(eq(dailyStatus.userId, demo.id));
 
   // ── Report ─────────────────────────────────────────────────────────────────
   const s = found.brief.dailyStatus, p = found.brief.pattern, lg = found.brief.longGame!;
-  const primary = contrastFromPairs("A-B", PAIRS_BA.map(([b, a]) => a - b), "linear", 12);
-  const secondary = contrastFromPairs("B-C", B_MINUS_C, "linear", 12);
+  const primary = contrastFromPairs("A-B", PAIRS_BA.map(([b, a]) => a - b), "linear", false);
+  const secondary = contrastFromPairs("B-C", B_MINUS_C, "linear", false);
+  const donePrimary = contrastFromPairs("A-B", DONE_PAIRS_BA.map(([b, a]) => a - b), "linear", true);
+  const doneSecondary = contrastFromPairs("B-C", DONE_B_MINUS_C, "linear", true);
+  // The completed demo shows both completed verdicts: no difference (primary), observed (secondary).
+  if (donePrimary.verdict !== "no_difference" || doneSecondary.verdict !== "observed_positive") {
+    throw new Error("completed demo study no longer shows both completed verdicts");
+  }
   const f1 = (x: number | null) => (x == null ? "—" : x.toFixed(1));
   console.log([
     ``,
@@ -353,9 +398,10 @@ async function main() {
     `  Pattern: seen after ${p.seenAfter} of ${p.highExposureDays}; yesterday ${p.yesterdayMin} min vs ${Math.round(p.averageMin!)} min average`,
     `  Long game: HRV ${Math.round(lg.hrv.then)} → ${Math.round(lg.hrv.now)} ms, RHR ${Math.round(lg.rhr!.then)} → ${Math.round(lg.rhr!.now)} bpm`,
     `  Quiet yesterday: longest ${q.longestQuietMin} min, ${q.quietStretches30} stretches (${q.quietMinutes30Total} min), ${q.pickups} pickups, ${q.pickupsAfter21} after 9 PM`,
-    `  Study: ${sessionCount} sessions, primary A−B ${primary.ci!.mean.toFixed(2)} (${primary.ci!.low!.toFixed(1)} to ${primary.ci!.high!.toFixed(1)}), `
-      + `secondary B−C ${secondary.ci!.mean.toFixed(2)} (${secondary.ci!.low!.toFixed(1)} to ${secondary.ci!.high!.toFixed(1)}), `
-      + `intention held ${(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)}`,
+    `  Study (running): ${running.sessions} sessions, 6 of 12 clients complete, results locked; A−B ${primary.ci!.mean.toFixed(2)} (${primary.ci!.low!.toFixed(1)} to ${primary.ci!.high!.toFixed(1)}), B−C ${secondary.ci!.mean.toFixed(2)} (${secondary.ci!.low!.toFixed(1)} to ${secondary.ci!.high!.toFixed(1)}), `
+      + `${running.guessesCorrect} of ${running.guesses} guesses correct, intention held ${running.meanRating.toFixed(1)}`,
+    `  Study (completed): ${done.sessions} sessions; A−B ${donePrimary.ci!.mean.toFixed(2)} (${donePrimary.ci!.low!.toFixed(1)} to ${donePrimary.ci!.high!.toFixed(1)}) "${donePrimary.verdictText}"`,
+    `    B−C ${doneSecondary.ci!.mean.toFixed(2)} (${doneSecondary.ci!.low!.toFixed(1)} to ${doneSecondary.ci!.high!.toFixed(1)}) "${doneSecondary.verdictText}"; ${done.guessesCorrect} of ${done.guesses} guesses correct`,
     ``,
     `Log in as ${DEMO_EMAIL} with the DEMO_PASSWORD you set.`,
   ].join("\n"));

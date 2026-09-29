@@ -114,8 +114,8 @@ describe("analysis (§4.5, A2, A3)", () => {
       session({ enrollmentId: c, condition: "A", preRmssdMs: 40, postRmssdMs: 50 + c }),
       session({ enrollmentId: c, condition: "B", preRmssdMs: 30, postRmssdMs: 33 }),
     ]);
-    const lin = pairedContrast(sessions, "A-B", "linear", 3);
-    const ln = pairedContrast(sessions, "A-B", "ln", 3);
+    const lin = pairedContrast(sessions, "A-B", "linear", true);
+    const ln = pairedContrast(sessions, "A-B", "ln", true);
     expect(lin.ci!.mean).toBeCloseTo(10 + 2 - 3, 10);
     expect(ln.ci!.mean).not.toBeCloseTo(lin.ci!.mean, 1);
   });
@@ -126,22 +126,62 @@ describe("analysis (§4.5, A2, A3)", () => {
       session({ enrollmentId: 2, condition: "A" }),                                     // no B
       session({ enrollmentId: 3, condition: "A", withdrawn: true }), session({ enrollmentId: 3, condition: "B", withdrawn: true }),
     ];
-    expect(pairedContrast(sessions, "A-B", "linear", 1).pairs).toHaveLength(1);
+    expect(pairedContrast(sessions, "A-B", "linear", true).pairs).toHaveLength(1);
   });
 
-  it("the verdict never claims more than the data: too early while n < target or the CI includes 0", () => {
+  describe("verdict by study status (Mark, Sep 29)", () => {
+    // A − B = +10.1…+10.4 ms: a range well clear of zero.
     const clear = [1, 2, 3, 4].flatMap(c => [
       session({ enrollmentId: c, condition: "A", postRmssdMs: 50 + c * 0.1 }),
       session({ enrollmentId: c, condition: "B", postRmssdMs: 40 }),
     ]);
-    expect(pairedContrast(clear, "A-B", "linear", 12).verdict).toBe("too_early");   // n < target
-    const done = pairedContrast(clear, "A-B", "linear", 4);
-    expect(done.verdict).toBe("observed_positive");
-    expect(done.verdictText).toMatch(/^Observed in our sessions/);
-    expect(done.verdictText).not.toMatch(/prove/i);
-    const explor = pairedContrast(clear, "A-B", "linear", 4, true);
-    expect(explor.exploratory).toBe(true);
-    expect(explor.verdictText).toMatch(/^Exploratory\. Observed in our sessions/);
+    // A − B = +2, −2, +1, −1 ms: a range that straddles zero.
+    const mixed = [2, -2, 1, -1].flatMap((d, c) => [
+      session({ enrollmentId: c, condition: "A", postRmssdMs: 45 + d }),
+      session({ enrollmentId: c, condition: "B", postRmssdMs: 45 }),
+    ]);
+
+    it("running: results locked, whatever the data", () => {
+      for (const s of [clear, mixed]) {
+        const c = pairedContrast(s, "A-B", "linear", false);
+        expect(c.verdict).toBe("results_locked");
+        expect(c.verdictText).toBe("Results unlock when the study is complete (prevents interim peeking).");
+      }
+    });
+
+    it("completed, likely range includes zero: no measurable difference", () => {
+      const c = pairedContrast(mixed, "A-B", "linear", true);
+      expect(c.ci!.low!).toBeLessThan(0);
+      expect(c.ci!.high!).toBeGreaterThan(0);
+      expect(c.verdict).toBe("no_difference");
+      expect(c.verdictText).toBe("No measurable difference in this study: the likely range includes zero.");
+      // Too few pairs for a range is also no measurable difference, never "too early".
+      const one = pairedContrast(clear.slice(0, 2), "A-B", "linear", true);
+      expect(one.verdict).toBe("no_difference");
+      expect(one.verdictText).toMatch(/^No measurable difference in this study: fewer than 2 clients/);
+    });
+
+    it("completed, likely range excludes zero: the observed direction and size", () => {
+      const up = pairedContrast(clear, "A-B", "linear", true);
+      expect(up.verdict).toBe("observed_positive");
+      expect(up.verdictText).toBe(
+        `Observed in our sessions: an increase of ${up.ci!.mean.toFixed(1)} ms (likely range +${up.ci!.low!.toFixed(1)} ms to +${up.ci!.high!.toFixed(1)} ms).`);
+      const down = pairedContrast(clear, "B-A", "linear", true);
+      expect(down.verdict).toBe("observed_negative");
+      expect(down.verdictText).toMatch(/^Observed in our sessions: a decrease of 10\.\d ms \(likely range −10\.\d ms to −10\.\d ms\)\.$/);
+      expect(pairedContrast(clear, "A-B", "ln", true).verdictText).toMatch(/an increase of \d+\.\d%/);
+      expect(pairedContrast(clear, "A-B", "linear", true, true).verdictText).toMatch(/^Exploratory\. Observed in our sessions/);
+    });
+
+    it("a completed study never says 'too early to tell', and nothing says 'prove'", () => {
+      for (const s of [clear, mixed, clear.slice(0, 2), []]) {
+        for (const done of [true, false]) {
+          const t = pairedContrast(s, "A-B", "linear", done).verdictText;
+          expect(t).not.toMatch(/too early/i);
+          expect(t).not.toMatch(/prove/i);
+        }
+      }
+    });
   });
 
   it("quality panel: blinding among primary-contrast sessions, ratings, drift, deviations", () => {
@@ -166,7 +206,7 @@ describe("analysis (§4.5, A2, A3)", () => {
     const q = qualityPanel(sessions, "A-B", "Polar H10 + Elite HRV");
     expect(q.deviceMismatches.map(m => m.sessionId)).toEqual([2]);
     // Mismatched sessions are still analysed.
-    expect(pairedContrast(sessions, "A-B", "linear", 1).pairs).toHaveLength(1);
+    expect(pairedContrast(sessions, "A-B", "linear", true).pairs).toHaveLength(1);
   });
 
   it("per-practitioner results stay hidden until each has 10+ sessions in each compared condition", () => {

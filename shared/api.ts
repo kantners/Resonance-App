@@ -103,7 +103,8 @@ export interface ContrastDto {
   pairs: number[];
   ci: { n: number; mean: number; sd: number | null; low: number | null; high: number | null } | null;
   rose: number; unchanged: number; fell: number;
-  verdict: "too_early" | "observed_positive" | "observed_negative";
+  /** "results_locked" only while running; a completed study never says "too early to tell". */
+  verdict: "results_locked" | "no_difference" | "observed_positive" | "observed_negative";
   verdictText: string;
 }
 

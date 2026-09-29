@@ -46,15 +46,19 @@ describe("HANDOFF §7 fixtures (linear-scale path)", () => {
     expect(tagged.messages.lastNight?.body).toMatch(/expected/i);
   });
 
-  it("study pairs (B, A) → mean d +0.67, 95% CI ≈ −1.9 to +3.2, 'Too early to tell'", () => {
+  // HANDOFF §7 expected "Too early to tell" here. Since Mark's Sep 29 verdict rule, a running
+  // study shows results locked, and the same data in a completed study has no measurable difference.
+  it("study pairs (B, A) → mean d +0.67, 95% CI ≈ −1.9 to +3.2; locked while running, no difference once complete", () => {
     const pairsBA = [[5, 7], [8, 8], [3, 6], [7, 6], [6, 9], [9, 6]];
-    const c = contrastFromPairs("A-B", pairsBA.map(([b, a]) => a - b), "linear", 12);
+    const c = contrastFromPairs("A-B", pairsBA.map(([b, a]) => a - b), "linear", false);
     expect(c.ci!.n).toBe(6);
     expect(c.ci!.mean).toBeCloseTo(0.667, 3);
     expect(c.ci!.low).toBeCloseTo(-1.88, 2);
     expect(c.ci!.high).toBeCloseTo(3.21, 2);
-    expect(c.verdict).toBe("too_early");
-    expect(c.verdictText).toBe("Too early to tell.");
+    expect(c.verdict).toBe("results_locked");
+    const done = contrastFromPairs("A-B", pairsBA.map(([b, a]) => a - b), "linear", true);
+    expect(done.verdict).toBe("no_difference");
+    expect(done.verdictText).toBe("No measurable difference in this study: the likely range includes zero.");
     // The Study screen's line: three rose, one unchanged, two fell.
     expect([c.rose, c.unchanged, c.fell]).toEqual([3, 1, 2]);
   });

@@ -119,8 +119,42 @@ export interface Contrast {
   pairs: number[];                   // d_i per client
   ci: MeanCI | null;                 // null when no client has both conditions
   rose: number; unchanged: number; fell: number;
-  verdict: "too_early" | "observed_positive" | "observed_negative";
+  verdict: StudyVerdict;
   verdictText: string;
+}
+
+/**
+ * The verdict depends on the study's status (Mark, Sep 29):
+ *   running → results locked (no interim peeking);
+ *   completed, likely range includes zero → no measurable difference;
+ *   completed, likely range excludes zero → the observed direction and size.
+ * A completed study never says "too early to tell".
+ */
+export type StudyVerdict = "results_locked" | "no_difference" | "observed_positive" | "observed_negative";
+
+export const RESULTS_LOCKED_TEXT = "Results unlock when the study is complete (prevents interim peeking).";
+export const NO_DIFFERENCE_TEXT = "No measurable difference in this study: the likely range includes zero.";
+/** Fewer than 2 clients with both conditions: no range can be estimated, so nothing was measured. */
+export const NO_RANGE_TEXT = "No measurable difference in this study: fewer than 2 clients had both conditions, so there is no likely range.";
+
+/** Size without sign: "2.1 ms" or "5.2%". */
+function formatSize(x: number, scale: AnalysisScale): string {
+  return scale === "ln" ? `${Math.abs((Math.exp(x) - 1) * 100).toFixed(1)}%` : `${Math.abs(x).toFixed(1)} ms`;
+}
+
+export function studyVerdict(
+  ci: MeanCI | null, scale: AnalysisScale, completed: boolean, exploratory = false,
+): { verdict: StudyVerdict; verdictText: string } {
+  if (!completed) return { verdict: "results_locked", verdictText: RESULTS_LOCKED_TEXT };
+  const prefix = exploratory ? "Exploratory. " : "";
+  if (!ci || ci.low === null || ci.high === null) return { verdict: "no_difference", verdictText: prefix + NO_RANGE_TEXT };
+  if (ci.low <= 0 && ci.high >= 0) return { verdict: "no_difference", verdictText: prefix + NO_DIFFERENCE_TEXT };
+  const up = ci.mean > 0;
+  return {
+    verdict: up ? "observed_positive" : "observed_negative",
+    verdictText: `${prefix}Observed in our sessions: ${up ? "an increase" : "a decrease"} of ${formatSize(ci.mean, scale)} `
+      + `(likely range ${formatEffect(ci.low, scale)} to ${formatEffect(ci.high, scale)}).`,
+  };
 }
 
 /** "A-B" → ["A", "B"] */
@@ -141,10 +175,10 @@ export function formatEffect(x: number, scale: AnalysisScale): string {
 /**
  * Within-client paired contrast: for each client with both conditions,
  * d_i = delta_x − delta_y. Mean, 95% CI from t (df = n − 1), n.
- * Verdict: "Too early to tell" while n < target or the CI includes 0.
+ * The verdict follows the study's status (see studyVerdict).
  */
 export function pairedContrast(
-  sessions: readonly SessionRecord[], contrast: string, scale: AnalysisScale, targetClients: number, exploratory = false,
+  sessions: readonly SessionRecord[], contrast: string, scale: AnalysisScale, completed: boolean, exploratory = false,
 ): Contrast {
   const [x, y] = parseContrast(contrast);
   const byClient = new Map<number, { x?: number; y?: number }>();
@@ -159,7 +193,7 @@ export function pairedContrast(
   const pairs = [...byClient.values()]
     .filter(e => e.x !== undefined && e.y !== undefined)
     .map(e => e.x! - e.y!);
-  return contrastFromPairs(contrast, pairs, scale, targetClients, exploratory);
+  return contrastFromPairs(contrast, pairs, scale, completed, exploratory);
 }
 
 /** A contrast is exploratory when it involves an optional arm. */
@@ -169,25 +203,16 @@ export function isExploratoryContrast(contrast: string, optionalCodes: ReadonlyS
 }
 
 export function contrastFromPairs(
-  contrast: string, pairs: number[], scale: AnalysisScale, targetClients: number, exploratory = false,
+  contrast: string, pairs: number[], scale: AnalysisScale, completed: boolean, exploratory = false,
 ): Contrast {
   const ci = pairs.length ? meanCI95(pairs) : null;
   const eps = 1e-9;
   const rose = pairs.filter(d => d > eps).length;
   const fell = pairs.filter(d => d < -eps).length;
-  const includesZero = !ci || ci.low === null || ci.high === null || (ci.low <= 0 && ci.high >= 0);
-  const tooEarly = pairs.length < targetClients || includesZero;
-  let verdictText: string;
-  let verdict: Contrast["verdict"];
-  if (tooEarly) {
-    verdict = "too_early";
-    verdictText = "Too early to tell.";
-  } else {
-    verdict = ci!.mean > 0 ? "observed_positive" : "observed_negative";
-    verdictText = `${exploratory ? "Exploratory. " : ""}Observed in our sessions: ${contrast.replace("-", " minus ")} averaged ${formatEffect(ci!.mean, scale)} `
-      + `(95% range ${formatEffect(ci!.low!, scale)} to ${formatEffect(ci!.high!, scale)}) across ${pairs.length} clients.`;
-  }
-  return { contrast, exploratory, pairs, ci, rose, unchanged: pairs.length - rose - fell, fell, verdict, verdictText };
+  return {
+    contrast, exploratory, pairs, ci, rose, unchanged: pairs.length - rose - fell, fell,
+    ...studyVerdict(ci, scale, completed, exploratory),
+  };
 }
 
 export interface DeviceMismatch {
