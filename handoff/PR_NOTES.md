@@ -1,4 +1,22 @@
-# PR notes (collected during the build; folded into the PR body at step 12)
+# Resonance Layer 0 (draft)
+
+Turns the KEWT copy into **Resonance Layer 0**: a narrow HRV and phone-exposure instrument plus the practitioner Session Study. It's built to HANDOFF.md, `handoff/BUILD_PLAN.md` (rev. 2) and every item in `handoff/PLAN_AMENDMENTS.md` (A1–D15). The branch covers steps 2–10: identity and cleanup, module removal, deploy hygiene (Node 24), schema and migrations, the rule engine, tests and CI, server routes, the six priority screens and the demo seed. The Sep 28 decisions and the plan's defaults are in `BUILD_PLAN.md`; everything that differs from or goes beyond the plan is below.
+
+## Summary for review
+- **Deferred:**
+  - camera PPG (Layer 1, with chest-strap RR and validation against a reference)
+  - Android `phone_events` capture (needs a native plugin; the quiet math is done and tested)
+  - PDF export (text + CSV instead)
+  - the screens after October 4: Session, Consent, Quiet, Trends, Exposure-Screenshot, Reading, Stillness, Fasting (9b). The PR comes out of draft after those.
+- **Disagreements with the HANDOFF:**
+  - rules live in `server/rules/`, not `/lib/rules`
+  - the Recovery-Rule copy says "at least 19 nights (14 + at least 5 of 7)"
+  - the allocation hash includes a secret nonce (A1)
+  - W counts calendar nights (Step 6 below)
+- **Decisions to confirm:** the Deck study 3 contrasts (C−A primary, C−B secondary), and the `gpt-4o-mini` evaluation on real screenshots before relying on it.
+- **Not verified locally:** `docker build` (no Docker on the build machine). CI covers `check`, `test` and `build` on Node 24.
+
+# PR notes (collected during the build)
 
 ## Process notes
 - **Verification piping (steps 3–4).** The check/build commands in steps 2–4 were piped through `tail` without `set -o pipefail`, so the shell's exit status was `tail`'s, not `tsc`'s. The step 3 commit message says check and build passed. Its output showed no diagnostics, so that claim holds, but the exit code wasn't what confirmed it. In step 4, the same piping briefly hid a real failure in the new `server/middleware/rateLimit.ts`: iterating a `Map` was rejected because `tsconfig.json` set no `target` (the ES3 default). Fixed in step 4 by setting `"target": "ES2022"`, which matches Node 24, and clearing the stale `tsbuildinfo`. From step 4 on, verification runs with `pipefail`.
