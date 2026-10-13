@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BriefResponse, MeResponse } from "@shared/api";
 import { apiRequest } from "./queryClient";
+import { signalError, signalSaved } from "./feedback";
 
 export function useMe() {
   return useQuery<MeResponse>({ queryKey: ["/api/me"] });
@@ -20,7 +21,9 @@ export function useSave<TBody, TResult = unknown>(method: string, url: string, i
         qc.invalidateQueries({ predicate: q => String(q.queryKey[0]).startsWith("/api/brief") }),
         ...invalidate.map(k => qc.invalidateQueries({ queryKey: [k] })),
       ]);
+      signalSaved();
     },
+    onError: () => signalError(),
   });
 }
 

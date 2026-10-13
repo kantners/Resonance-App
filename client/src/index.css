@@ -217,3 +217,17 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); }
   40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
 }
+
+/* Save confirmation */
+@media (prefers-reduced-motion: no-preference) {
+  .r-saved { animation: r-saved-in 1.6s cubic-bezier(.2,.8,.2,1) both; }
+  .r-saved-tick { stroke-dasharray: 16; stroke-dashoffset: 16; animation: r-tick .32s .12s ease-out forwards; }
+}
+@keyframes r-saved-in {
+  0% { opacity: 0; transform: translateY(8px) scale(.94); }
+  12% { opacity: 1; transform: translateY(0) scale(1.03); }
+  20% { transform: scale(1); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+@keyframes r-tick { to { stroke-dashoffset: 0; } }

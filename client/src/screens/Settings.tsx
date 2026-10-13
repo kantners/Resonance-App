@@ -8,6 +8,7 @@ import { Eyebrow, SubScreen } from "@/components/Layout";
 import { PostureSetting } from "@/components/PostureSetting";
 import { useAuth } from "@/hooks/use-auth";
 import { errorText, useMe, useSave } from "@/lib/api";
+import { signalError, signalSaved } from "@/lib/feedback";
 import { deviceTimeZone } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
 import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
@@ -34,7 +35,8 @@ export default function SettingsScreen() {
       await apiRequest("POST", "/api/auth/password", { currentPassword: pw.current, newPassword: pw.next });
       setPw({ current: "", next: "", confirm: "" });
       setPwMsg({ ok: true, text: "Password changed." });
-    } catch (e) { setPwMsg({ ok: false, text: errorText(e) }); }
+      signalSaved("Password changed");
+    } catch (e) { setPwMsg({ ok: false, text: errorText(e) }); signalError(); }
     finally { setPwBusy(false); }
   }
   const input = "flex-1 min-w-0 h-12 box-border px-3.5 rounded-control border border-control bg-surface text-15";
