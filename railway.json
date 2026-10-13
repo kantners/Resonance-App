@@ -5,7 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": ["npx drizzle-kit migrate"],
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "numReplicas": 1,

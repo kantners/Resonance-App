@@ -30,4 +30,8 @@ ENV NODE_ENV=production
 EXPOSE 5000
 
 USER node
-CMD ["node", "dist/index.cjs"]
+# Apply pending migrations, then start. drizzle-kit skips migrations already
+# applied, so this is safe on every start; a failed migration stops the
+# container before the app takes traffic. (Railway's pre-deploy command did
+# not run for CLI uploads on 2026-10-13, leaving an empty database.)
+CMD ["sh", "-c", "npx drizzle-kit migrate && exec node dist/index.cjs"]
