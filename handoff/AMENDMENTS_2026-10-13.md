@@ -93,3 +93,8 @@ Status key: [done] [spec] [open = answer needed before build]
 - Screenshot reader fills Fell asleep / Woke; both editable in review and on the Sleep screen. "Kitchen closed" on the Fasting screen starts a 16 h fast.
 - `server/rules/evening.ts`: gap = start of the fast spanning sleep onset to onset; `late_meal` = gap under 3 h; long fast = 20 h or more. Thresholds are rules of thumb.
 - DISPLAY ONLY: not stored as tags, not inputs to computeBrief. RULE_VERSION deliberately NOT bumped (it keys stored daily_status rows, so a bump would orphan prior labels and restart the baseline). Revisit when evening confounders become a stratum.
+
+## Deferred: fasting stage/phase labels (ketosis, autophagy)
+- Deliberately NOT shown today: timing varies by person and no noninvasive human autophagy marker exists. Revisit after Mark speaks with InHealthRVA.
+- If added: label as typical ranges (not personal facts), or prefer measured data (optional blood/breath ketone entries plotted on the fast ruler).
+- Tracker visual direction: A (clock-time ruler, current fast only, with sleep band) + C (own-history dot plot). Optional later: morning HRV/RHR markers on the ruler.

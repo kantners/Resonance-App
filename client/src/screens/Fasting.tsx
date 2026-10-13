@@ -8,6 +8,9 @@ import { SubScreen } from "@/components/Layout";
 import { apiRequest } from "@/lib/queryClient";
 import { errorText, useMe } from "@/lib/api";
 import { signalError, signalSaved } from "@/lib/feedback";
+import { FastRuler, OwnFasts } from "@/components/FastViz";
+import { localToday } from "@/lib/dates";
+import type { SleepLog } from "@shared/schema";
 
 const PRESETS = [12, 14, 16, 18, 20, 24, 30, 36, 40, 48];
 
@@ -72,6 +75,10 @@ export default function FastingScreen() {
   const { data: active } = useQuery<FastingSession | null>({ queryKey: ["/api/fasting/active"] });
   const { data: history } = useQuery<FastingSession[]>({ queryKey: ["/api/fasting/history"] });
 
+  const from = active ? localToday(new Date(active.startedAt)) : "";
+  const to = localToday(new Date());
+  const { data: sleeps } = useQuery<SleepLog[]>({ queryKey: [`/api/sleep?from=${from}&to=${to}`], enabled: !!active });
+
   const [goal, setGoal] = useState(16);
   const [earlier, setEarlier] = useState(false);
   const [startAt, setStartAt] = useState(() => toLocalInput(new Date()));
@@ -124,7 +131,6 @@ export default function FastingScreen() {
 
   const elapsedMs = active ? now - Date.parse(active.startedAt) : 0;
   const goalH = active?.goalHours ?? 16;
-  const pct = active ? Math.min(100, (elapsedMs / (goalH * 3_600_000)) * 100) : 0;
   const reached = active ? elapsedMs >= goalH * 3_600_000 : false;
 
   return (
@@ -138,10 +144,7 @@ export default function FastingScreen() {
               {reached ? `Goal of ${goalH}h reached` : `${hm(goalH * 3_600_000 - elapsedMs)} to your ${goalH}h goal`}
             </span>
           </div>
-          <div role="progressbar" aria-label="Progress to goal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}
-            className="h-2 rounded-[4px] bg-track flex">
-            <div className="h-2 rounded-[4px] bg-ink transition-[width] duration-700" style={{ width: `${pct}%` }} />
-          </div>
+          <FastRuler startedAt={active.startedAt} goalHours={goalH} now={now} sleeps={sleeps ?? []} />
           <div className="flex justify-between items-center text-13">
             <span className="text-ink-soft">Started {when(active.startedAt)}</span>
             <button type="button" className="r-button-quiet min-h-[44px] px-3 text-13" onClick={() => setEditId(editId === active.id ? null : active.id)}>
@@ -181,6 +184,8 @@ export default function FastingScreen() {
           <PrimaryButton onClick={start} disabled={run.isPending}>{run.isPending ? "Starting…" : `Start ${goal}h fast`}</PrimaryButton>
         </section>
       )}
+
+      {active && <OwnFasts pastHours={hours} currentHours={elapsedMs / 3_600_000} goalHours={goalH} />}
 
       <FormError>{error}</FormError>
 
