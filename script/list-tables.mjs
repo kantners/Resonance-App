@@ -1,9 +1,10 @@
-// Lists table names (never rows) in the database at PGURL. Used by
-// handoff/deploy-staging.ps1 to check Postgres before the first migration.
+// Lists table names (never rows) and the database size. Uses PGURL, else
+// DATABASE_URL, so it runs inside the Railway container via `railway ssh`
+// (Postgres has no public address).
 import pg from "pg";
 
-const url = process.env.PGURL;
-if (!url) { console.error("PGURL is not set."); process.exit(1); }
+const url = process.env.PGURL || process.env.DATABASE_URL;
+if (!url) { console.error("Neither PGURL nor DATABASE_URL is set."); process.exit(1); }
 const client = new pg.Client({ connectionString: url });
 try {
   await client.connect();
