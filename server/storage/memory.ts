@@ -115,11 +115,12 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       fasts.splice(i, 1);
       return true;
     },
-    async updateFastTimes(userId, fid, startedAt, endedAt) {
+    async updateFastTimes(userId, fid, startedAt, endedAt, goalHours) {
       const f = fasts.find(x => x.id === fid && x.userId === userId);
       if (!f) return null;
       if (startedAt !== undefined) f.startedAt = startedAt;
       if (endedAt !== undefined) f.endedAt = endedAt;
+      if (goalHours !== undefined) f.goalHours = goalHours;
       return f;
     },
 

@@ -121,10 +121,11 @@ export function createDbStorage(db: NodePgDatabase): IStorage {
       const r = await db.delete(fastingSessions).where(and(eq(fastingSessions.id, id), eq(fastingSessions.userId, userId)));
       return (r.rowCount ?? 0) > 0;
     },
-    async updateFastTimes(userId, id, startedAt, endedAt) {
-      const update: Record<string, string> = {};
+    async updateFastTimes(userId, id, startedAt, endedAt, goalHours) {
+      const update: Record<string, string | number> = {};
       if (startedAt !== undefined) update.startedAt = startedAt;
       if (endedAt !== undefined) update.endedAt = endedAt;
+      if (goalHours !== undefined) update.goalHours = goalHours;
       if (!Object.keys(update).length) return null;
       const rows = await db.update(fastingSessions).set(update)
         .where(and(eq(fastingSessions.id, id), eq(fastingSessions.userId, userId))).returning();

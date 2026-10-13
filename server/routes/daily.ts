@@ -425,8 +425,27 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
   });
 
   app.patch("/api/fasting/:id", requireAuth, async (req, res) => {
-    const body = z.object({ startedAt: zIsoInstant.optional(), endedAt: zIsoInstant.optional() }).strict().parse(req.body);
-    const row = await storage.updateFastTimes(userId(req), idParam(req), body.startedAt, body.endedAt);
+    const uid = userId(req), id = idParam(req);
+    const body = z.object({
+      startedAt: zIsoInstant.optional(), endedAt: zIsoInstant.optional(), goalHours: z.number().min(1).max(72).optional(),
+    }).strict().parse(req.body);
+    const [active, history] = await Promise.all([storage.getActiveFast(uid), storage.getFastingHistory(uid, 200)]);
+    const all = [...(active ? [active] : []), ...history.filter(f => f.id !== active?.id)];
+    const cur = all.find(f => f.id === id);
+    if (!cur) throw notFound();
+    const nowMs = deps.now().getTime();
+    const start = Date.parse(body.startedAt ?? cur.startedAt);
+    const endIso = body.endedAt ?? cur.endedAt;
+    const end = endIso ? Date.parse(endIso) : null;
+    if (body.endedAt !== undefined && cur.endedAt == null) throw badRequest("A running fast is ended with End fast.");
+    if (start > nowMs + 60_000) throw badRequest("The start can't be in the future.");
+    if (end != null && end > nowMs + 60_000) throw badRequest("The end can't be in the future.");
+    if (end != null && end <= start) throw badRequest("The end must be after the start.");
+    if (end != null && (end - start) / 3_600_000 > 72) throw badRequest("A fast can't run longer than 72 hours.");
+    const spanEnd = end ?? Infinity;
+    const clash = all.find(f => f.id !== id && Date.parse(f.startedAt) < spanEnd && start < (f.endedAt ? Date.parse(f.endedAt) : Infinity));
+    if (clash) throw badRequest("That overlaps another fast. Adjust the times.");
+    const row = await storage.updateFastTimes(uid, id, body.startedAt, body.endedAt, body.goalHours);
     if (!row) throw notFound();
     res.json(row);
   });

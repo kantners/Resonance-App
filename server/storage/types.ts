@@ -72,7 +72,7 @@ export interface IStorage {
   startFast(userId: number, startedAt: string, goalHours: number): Promise<FastingSession>;
   endFast(userId: number, id: number, endedAt: string, notes?: string): Promise<FastingSession | null>;
   deleteFast(userId: number, id: number): Promise<boolean>;
-  updateFastTimes(userId: number, id: number, startedAt?: string, endedAt?: string): Promise<FastingSession | null>;
+  updateFastTimes(userId: number, id: number, startedAt?: string, endedAt?: string, goalHours?: number): Promise<FastingSession | null>;
 
   // Night context tags
   getNightTags(userId: number, date: string): Promise<ContextTag[]>;

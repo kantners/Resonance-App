@@ -24,6 +24,48 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: 
 
 const dateInput = "h-12 box-border w-full rounded-control border border-control bg-surface px-3.5 font-mono text-15";
 
+function EditPanel({ s, busy, onSave, onDelete }: {
+  s: FastingSession; busy: boolean; onSave: (id: number, body: Record<string, unknown>) => void; onDelete: (id: number) => void;
+}) {
+  const [start, setStart] = useState(() => toLocalInput(new Date(s.startedAt)));
+  const [end, setEnd] = useState(() => (s.endedAt ? toLocalInput(new Date(s.endedAt)) : ""));
+  const [goal, setGoal] = useState(s.goalHours ?? 16);
+  const [err, setErr] = useState<string | null>(null);
+  const max = toLocalInput(new Date());
+  function save() {
+    const st = new Date(start), en = s.endedAt ? new Date(end) : null;
+    if (Number.isNaN(st.getTime()) || (en && Number.isNaN(en.getTime()))) return setErr("Pick valid times.");
+    if (en && en <= st) return setErr("The end must be after the start.");
+    setErr(null);
+    onSave(s.id, { startedAt: st.toISOString(), ...(en ? { endedAt: en.toISOString() } : {}), goalHours: goal });
+  }
+  return (
+    <div className="flex flex-col gap-3 pt-1">
+      <div className="flex flex-col gap-2">
+        <FieldLabel htmlFor={`fe-start-${s.id}`}>Start</FieldLabel>
+        <input id={`fe-start-${s.id}`} type="datetime-local" value={start} max={max} onChange={e => setStart(e.target.value)} className={dateInput} />
+      </div>
+      {s.endedAt && (
+        <div className="flex flex-col gap-2">
+          <FieldLabel htmlFor={`fe-end-${s.id}`}>End</FieldLabel>
+          <input id={`fe-end-${s.id}`} type="datetime-local" value={end} max={max} onChange={e => setEnd(e.target.value)} className={dateInput} />
+        </div>
+      )}
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Goal</FieldLabel>
+        <div className="grid grid-cols-5 gap-2" role="group" aria-label="Goal hours">
+          {PRESETS.map(h => (
+            <button key={h} type="button" className="r-chip min-h-[44px] px-0 justify-center" aria-pressed={goal === h} onClick={() => setGoal(h)}>{h}h</button>
+          ))}
+        </div>
+      </div>
+      {err && <p role="alert" className="m-0 text-13 text-alert">{err}</p>}
+      <button type="button" className="r-button min-h-[48px]" onClick={save} disabled={busy}>Save changes</button>
+      <button type="button" className="r-button-quiet min-h-[44px] text-13" onClick={() => onDelete(s.id)} disabled={busy}>Delete this fast</button>
+    </div>
+  );
+}
+
 export default function FastingScreen() {
   const qc = useQueryClient();
   const { data: me } = useMe();
@@ -33,8 +75,7 @@ export default function FastingScreen() {
   const [goal, setGoal] = useState(16);
   const [earlier, setEarlier] = useState(false);
   const [startAt, setStartAt] = useState(() => toLocalInput(new Date()));
-  const [editing, setEditing] = useState(false);
-  const [editAt, setEditAt] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
 
@@ -69,12 +110,11 @@ export default function FastingScreen() {
   function end() {
     if (active) run.mutate({ method: "POST", url: "/api/fasting/end", body: { id: active.id } });
   }
-  function saveStart() {
-    const at = new Date(editAt);
-    if (!active || Number.isNaN(at.getTime())) return setError("Pick a valid start time.");
-    if (at.getTime() > Date.now()) return setError("The start time can't be in the future.");
-    run.mutate({ method: "PATCH", url: `/api/fasting/${active.id}`, body: { startedAt: at.toISOString() } },
-      { onSuccess: () => setEditing(false) });
+  function saveEdit(id: number, body: Record<string, unknown>) {
+    run.mutate({ method: "PATCH", url: `/api/fasting/${id}`, body }, { onSuccess: () => setEditId(null) });
+  }
+  function deleteFast(id: number) {
+    if (window.confirm("Delete this fast?")) run.mutate({ method: "DELETE", url: `/api/fasting/${id}` }, { onSuccess: () => setEditId(null) });
   }
 
   const done = (history ?? []).filter(s => s.endedAt);
@@ -104,19 +144,11 @@ export default function FastingScreen() {
           </div>
           <div className="flex justify-between items-center text-13">
             <span className="text-ink-soft">Started {when(active.startedAt)}</span>
-            <button type="button" className="r-button-quiet min-h-[44px] px-3 text-13"
-              onClick={() => { setEditAt(toLocalInput(new Date(active.startedAt))); setEditing(e => !e); }}>
-              {editing ? "Cancel" : "Change start"}
+            <button type="button" className="r-button-quiet min-h-[44px] px-3 text-13" onClick={() => setEditId(editId === active.id ? null : active.id)}>
+              {editId === active.id ? "Cancel" : "Edit"}
             </button>
           </div>
-          {editing && (
-            <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="f-edit">Start time</FieldLabel>
-              <input id="f-edit" type="datetime-local" value={editAt} max={toLocalInput(new Date())}
-                onChange={e => setEditAt(e.target.value)} className={dateInput} />
-              <button type="button" className="r-button min-h-[48px]" onClick={saveStart} disabled={run.isPending}>Save start time</button>
-            </div>
-          )}
+          {editId === active.id && <EditPanel s={active} busy={run.isPending} onSave={saveEdit} onDelete={deleteFast} />}
           <PrimaryButton onClick={end} disabled={run.isPending}>{run.isPending ? "Saving…" : "End fast"}</PrimaryButton>
         </section>
       ) : (
@@ -168,14 +200,18 @@ export default function FastingScreen() {
           <h2 className="m-0 pt-2 pb-1 text-15 font-semibold">History <span className="font-normal text-13 text-muted">· last 30 days</span></h2>
           <ul className="m-0 p-0 list-none">
             {done.map((s, i) => (
-              <li key={s.id} className="flex items-center justify-between min-h-[52px] border-b border-hairline last:border-b-0 text-14">
-                <span className="flex flex-col">
-                  <span className="font-mono">{hm(hours[i] * 3_600_000)}</span>
-                  <span className="text-12 text-muted">{day(s.startedAt)} · goal {s.goalHours ?? 16}h</span>
-                </span>
-                <button type="button" aria-label={`Delete the fast from ${day(s.startedAt)}`} disabled={run.isPending}
-                  onClick={() => { if (window.confirm("Delete this fast?")) run.mutate({ method: "DELETE", url: `/api/fasting/${s.id}` }); }}
-                  className="bg-transparent border-0 text-muted text-20 cursor-pointer w-11 h-11">×</button>
+              <li key={s.id} className="border-b border-hairline last:border-b-0 text-14">
+                <div className="flex items-center justify-between min-h-[52px]">
+                  <span className="flex flex-col">
+                    <span className="font-mono">{hm(hours[i] * 3_600_000)}</span>
+                    <span className="text-12 text-muted">{day(s.startedAt)} · goal {s.goalHours ?? 16}h</span>
+                  </span>
+                  <button type="button" aria-label={`Edit the fast from ${day(s.startedAt)}`} disabled={run.isPending}
+                    onClick={() => setEditId(editId === s.id ? null : s.id)} className="r-button-quiet min-h-[44px] px-3 text-13">
+                    {editId === s.id ? "Cancel" : "Edit"}
+                  </button>
+                </div>
+                {editId === s.id && <div className="pb-3"><EditPanel s={s} busy={run.isPending} onSave={saveEdit} onDelete={deleteFast} /></div>}
               </li>
             ))}
           </ul>
