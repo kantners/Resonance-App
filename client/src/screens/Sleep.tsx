@@ -9,6 +9,9 @@ import { Field, FieldLabel, FormError, num, PrimaryButton, UnitInput } from "@/c
 import { SubScreen } from "@/components/Layout";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { addDays, localToday } from "@/lib/dates";
+import { instantToClock, isClock, windowToInstants } from "@/lib/sleepTimes";
+
+type Evening = { gapHours: number | null; lateMeal: boolean; fastHours: number | null; longFast: boolean };
 
 export default function SleepScreen() {
   const [, navigate] = useLocation();
@@ -20,6 +23,8 @@ export default function SleepScreen() {
 
   const [h, setH] = useState(""), [m, setM] = useState(""), [score, setScore] = useState("");
   const [hrv, setHrv] = useState(""), [rhr, setRhr] = useState(""), [notes, setNotes] = useState("");
+  const [bed, setBed] = useState(""), [wake, setWake] = useState("");
+  const { data: evening } = useQuery<Evening>({ queryKey: [`/api/evening/${wakeDate}`] });
   const [device, setDevice] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const save = useSave<Record<string, unknown>>("POST", "/api/sleep");
@@ -34,6 +39,7 @@ export default function SleepScreen() {
     setHrv(e?.hrv != null ? String(e.hrv) : "");
     setRhr(e?.restingHr != null ? String(e.restingHr) : "");
     setNotes(e?.notes ?? "");
+    setBed(instantToClock(e?.sleepOnset)); setWake(instantToClock(e?.wakeTime));
     setDevice(null);
     setTouched(false);
   }, [existing?.id, wakeDate]);
@@ -45,14 +51,16 @@ export default function SleepScreen() {
     score: touched && sc != null && (Number.isNaN(sc) || sc < 0 || sc > 100),
     hrv: touched && hv != null && (Number.isNaN(hv) || hv <= 0 || hv > 400),
     rhr: touched && rh != null && (Number.isNaN(rh) || rh < 20 || rh > 200),
+    clock: touched && ((bed !== "" && !isClock(bed)) || (wake !== "" && !isClock(wake))),
     device: touched && hv != null && !deviceValue.trim(),
   };
 
   async function submit() {
     setTouched(true);
-    const anyBad = [bad.time, bad.score, bad.hrv, bad.rhr].some(Boolean)
+    const anyBad = [bad.time, bad.score, bad.hrv, bad.rhr, bad.clock].some(Boolean)
       || (hours != null && Number.isNaN(hours)) || (hv != null && !deviceValue.trim());
     if (anyBad) return;
+    const win = windowToInstants(wakeDate, bed, wake);
     const total = hours != null || mins != null ? (hours ?? 0) + (mins ?? 0) / 60 : null;
     await save.mutateAsync({
       date: wakeDate,
@@ -61,6 +69,8 @@ export default function SleepScreen() {
       hrv: hv,
       restingHr: rh != null ? Math.round(rh) : null,
       notes: notes.trim() || null,
+      sleepOnset: win.sleepOnset,
+      wakeTime: win.wakeTime,
       ...(hv != null ? { hrvDevice: deviceValue.trim() } : {}),
     });
     navigate("/");
@@ -85,6 +95,17 @@ export default function SleepScreen() {
             <UnitInput value={m} onChange={setM} unit="m" label="Minutes asleep" invalid={bad.time} />
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="Fell asleep" htmlFor="s-bed" optional><UnitInput id="s-bed" type="time" value={bed} onChange={setBed} invalid={bad.clock} /></Field>
+          <Field label="Woke" htmlFor="s-wake" optional><UnitInput id="s-wake" type="time" value={wake} onChange={setWake} invalid={bad.clock} /></Field>
+        </div>
+        {evening?.gapHours != null && (
+          <p className="m-0 text-13 leading-[1.45] text-ink-soft">
+            Last meal to sleep: <span className="font-mono">{evening.gapHours} h</span>
+            {evening.lateMeal ? " · under 3 h (a rule of thumb, not a verdict)" : ""}
+            {evening.longFast && evening.fastHours != null ? ` · this fast ran ${evening.fastHours} h` : ""}
+          </p>
+        )}
         <Field label="Sleep score" htmlFor="s-score">
           <UnitInput id="s-score" value={score} onChange={setScore} unit="/ 100" invalid={bad.score} />
         </Field>

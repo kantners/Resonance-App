@@ -87,3 +87,9 @@ Status key: [done] [spec] [open = answer needed before build]
 - Q3. Builder: Claude in this chat via the device shell, or Claude Code from this spec?
 - Q4. Merge the palette commit into `build/layer-0` before October 20?
 - Q5. Fasting, phase B (deferred by Mark on Oct 13; phase A, the plain tracker, is built). (a) Record "last meal" when a fast ends and compute the last-meal-to-sleep-onset gap each night, as another anchored window like the evening screen window. (b) Add a late-meal confounder tag. (c) Mark long-fast days (about 20 h or more) as their own stratum so they don't read as unexplained HRV drops. Any change to the rules needs a new RULE_VERSION and a baseline restart for the affected fields. Fasting stays out of the Brief's recovery wording until this is specified.
+
+## Q5 status (2026-10-13): fasting phase B built
+- Migration `0003_sleep_onset_wake` adds `sleep_logs.sleep_onset` and `wake_time` (ISO instants). The spec's planned `0003_evening_confounders` is now `0004`.
+- Screenshot reader fills Fell asleep / Woke; both editable in review and on the Sleep screen. "Kitchen closed" on the Fasting screen starts a 16 h fast.
+- `server/rules/evening.ts`: gap = start of the fast spanning sleep onset to onset; `late_meal` = gap under 3 h; long fast = 20 h or more. Thresholds are rules of thumb.
+- DISPLAY ONLY: not stored as tags, not inputs to computeBrief. RULE_VERSION deliberately NOT bumped (it keys stored daily_status rows, so a bump would orphan prior labels and restart the baseline). Revisit when evening confounders become a stratum.

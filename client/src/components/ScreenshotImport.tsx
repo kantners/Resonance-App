@@ -6,17 +6,20 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { FieldLabel, FormError, PrimaryButton, UnitInput, num } from "@/components/Fields";
 import { errorText, useMe, useSave } from "@/lib/api";
+import { isClock, windowToInstants } from "@/lib/sleepTimes";
 
 export type ShotKind = "sleep" | "screen_time";
 
 type Parsed = { data: Record<string, any>; low: string[]; platform?: string | null };
-type Def = { key: string; label: string; unit: string; mode?: "numeric" | "decimal" };
+type Def = { key: string; label: string; unit: string; mode?: "numeric" | "decimal" | "time" };
 
 const SLEEP: Def[] = [
   { key: "asleep_h", label: "Hours asleep", unit: "h" },
   { key: "asleep_m", label: "Minutes asleep", unit: "m" },
   { key: "hrv", label: "HRV", unit: "ms", mode: "decimal" },
   { key: "resting_hr", label: "Resting HR", unit: "bpm" },
+  { key: "bed_time", label: "Fell asleep", unit: "", mode: "time" },
+  { key: "wake_time", label: "Woke", unit: "", mode: "time" },
 ];
 const SCREEN: Def[] = [
   { key: "total_h", label: "Hours", unit: "h" },
@@ -34,6 +37,7 @@ function toForm(kind: ShotKind, d: Record<string, any>): Record<string, string> 
   if (kind === "sleep") {
     if (d.hours != null) { const t = Math.round(d.hours * 60); o.asleep_h = String(Math.floor(t / 60)); o.asleep_m = String(t % 60); }
     o.hrv = s(d.hrv); o.resting_hr = s(d.resting_hr);
+    for (const k of ["bed_time", "wake_time"]) o[k] = typeof d[k] === "string" && isClock(d[k]) ? d[k] : "";
   } else {
     if (d.total_min != null) { const t = Math.round(d.total_min); o.total_h = String(Math.floor(t / 60)); o.total_m = String(t % 60); }
     for (const k of ["pickups", "social_min", "entertainment_min", "productivity_min"]) o[k] = s(d[k]);
@@ -43,7 +47,7 @@ function toForm(kind: ShotKind, d: Record<string, any>): Record<string, string> 
 
 /** Which form fields a server-side low-confidence key affects. */
 const LOW_TO_FORM: Record<string, string[]> = {
-  hours: ["asleep_h", "asleep_m"], hrv: ["hrv"], resting_hr: ["resting_hr"],
+  hours: ["asleep_h", "asleep_m"], hrv: ["hrv"], resting_hr: ["resting_hr"], bed_time: ["bed_time"], wake_time: ["wake_time"],
   total_min: ["total_h", "total_m"], pickups: ["pickups"], social_min: ["social_min"],
   entertainment_min: ["entertainment_min"], productivity_min: ["productivity_min"],
 };
@@ -128,12 +132,16 @@ export default function ScreenshotImport({ kind, date }: { kind: ShotKind; date:
       const h = intOrNull(form.asleep_h ?? "", 24), m = intOrNull(form.asleep_m ?? "", 59);
       const hv = num(form.hrv ?? ""), rh = intOrNull(form.resting_hr ?? "", 200);
       if (hv != null && (Number.isNaN(hv) || hv <= 0 || hv > 400)) return setError("HRV should be between 1 and 400 ms.");
+      const bed = form.bed_time ?? "", wk = form.wake_time ?? "";
+      if ((bed && !isClock(bed)) || (wk && !isClock(wk))) return setError("Enter bed and wake times as hours and minutes.");
+      const win = windowToInstants(date, bed, wk);
       const dev = (device ?? me?.defaultHrvDevice ?? "").trim();
       if (hv != null && !dev) return setError("Add the HRV source (device and app) first, or set it in Settings.");
       data = {
         date,
         hours: h != null || m != null ? (h ?? 0) + (m ?? 0) / 60 : null,
         hrv: hv, resting_hr: rh != null && rh >= 20 ? rh : null,
+        sleep_onset: win.sleepOnset, wake_time: win.wakeTime,
         ...(hv != null ? { hrv_device: dev } : {}),
       };
     } else {
@@ -211,7 +219,7 @@ export default function ScreenshotImport({ kind, date }: { kind: ShotKind; date:
                     {low.has(d.key) && <span className="ml-1.5 font-semibold text-exposure-strong">· check</span>}
                   </FieldLabel>
                   <UnitInput id={`ss-${d.key}`} value={form[d.key] ?? ""} onChange={v => edit(d.key, v)} unit={d.unit}
-                    inputMode={d.mode ?? "numeric"} placeholder="—" />
+                    inputMode={d.mode === "time" ? "text" : (d.mode ?? "numeric")} type={d.mode === "time" ? "time" : undefined} placeholder="—" />
                 </div>
               ))}
             </div>

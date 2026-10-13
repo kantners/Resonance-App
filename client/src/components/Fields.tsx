@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 
 /** A mono input with a unit suffix inside the same bordered box (design: Sleep, Exposure). */
 export function UnitInput({
-  id, value, onChange, unit, label, invalid, inputMode = "numeric", placeholder,
+  id, value, onChange, unit, label, invalid, inputMode = "numeric", placeholder, type,
 }: {
   id?: string; value: string; onChange: (v: string) => void; unit?: string; label?: string;
-  invalid?: boolean; inputMode?: "numeric" | "decimal" | "text"; placeholder?: string;
+  invalid?: boolean; inputMode?: "numeric" | "decimal" | "text"; placeholder?: string; type?: "time";
 }) {
   return (
     <label
@@ -22,6 +22,7 @@ export function UnitInput({
         aria-label={label}
         aria-invalid={invalid || undefined}
         inputMode={inputMode}
+        type={type}
         placeholder={placeholder}
         className="w-full border-0 outline-none bg-transparent font-mono text-18 text-ink min-w-0"
       />

@@ -8,7 +8,8 @@ import * as os from "os";
 import * as path from "path";
 import { z } from "zod";
 import { badRequest, HttpError, requireAuth, userId, zLocalDate } from "../http";
-import { saveExposure, zExposure } from "./daily";
+import { sleepWindowError } from "../rules/evening";
+import { saveExposure, zExposure, zIsoInstant } from "./daily";
 import type { RouteDeps } from ".";
 
 const upload = multer({
@@ -35,9 +36,10 @@ FIELD RULES:
 - "sleep_score": the score numerator only ("80 / 100" → 80).
 - "hrv": average overnight HRV in ms. NOT a 7-day average.
 - "resting_hr": resting heart rate in bpm. NOT the average overnight heart rate.
+- "bed_time" and "wake_time": the clock times the sleep started and ended, as 24-hour "HH:MM" ("10:42 PM" → "22:42", "6:35 AM" → "06:35"). Use the sleep session's start and end shown on the screen. null if not shown.
 "confidence": for each field, a number from 0 to 1: how sure you are the value is read correctly (1 = clearly legible).
 
-{"type":"sleep","data":{"date":…,"hours":…,"sleep_score":…,"hrv":…,"resting_hr":…},"confidence":{"date":…,"hours":…,"sleep_score":…,"hrv":…,"resting_hr":…}}`;
+{"type":"sleep","data":{"date":…,"hours":…,"sleep_score":…,"hrv":…,"resting_hr":…,"bed_time":…,"wake_time":…},"confidence":{"date":…,"hours":…,"sleep_score":…,"hrv":…,"resting_hr":…,"bed_time":…,"wake_time":…}}`;
 
 const SCREEN_TIME_PROMPT = `You extract data from an iOS Screen Time or Android Digital Wellbeing screenshot for ONE day.
 
@@ -101,6 +103,8 @@ export function registerScreenshotRoutes(app: Express, deps: RouteDeps) {
         hrv: z.number().positive().max(400).nullable().optional(),
         resting_hr: z.number().int().min(20).max(200).nullable().optional(),
         hrv_device: z.string().trim().max(120).optional(),
+        sleep_onset: zIsoInstant.nullable().optional(),
+        wake_time: zIsoInstant.nullable().optional(),
       }),
     }),
     z.object({ type: z.literal("screen_time"), data: zExposure.omit({ source: true }) }),
@@ -118,8 +122,11 @@ export function registerScreenshotRoutes(app: Express, deps: RouteDeps) {
     const user = (await deps.storage.getUserById(uid))!;
     const hrvDevice = d.hrv_device?.trim() || user.defaultHrvDevice;
     if (d.hrv != null && !hrvDevice) throw badRequest("Every HRV reading needs its source: the device and app it came from.");
+    const windowErr = sleepWindowError(d.sleep_onset, d.wake_time);
+    if (windowErr) throw badRequest(windowErr);
     const patch = Object.fromEntries(Object.entries({
       hours: d.hours, sleepScore: d.sleep_score, hrv: d.hrv, restingHr: d.resting_hr,
+      sleepOnset: d.sleep_onset, wakeTime: d.wake_time,
       ...(d.hrv != null ? { hrvSource: "device_manual", hrvDevice } : {}),
     }).filter(([, v]) => v != null));
     // A screenshot HRV is an overnight value: it carries no posture.

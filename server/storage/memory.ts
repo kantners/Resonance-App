@@ -76,7 +76,7 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       if (!row) {
         row = {
           id: id(), userId, date, hours: null, quality: null, sleepScore: null, restingHr: null, hrv: null,
-          hrvSource: "device_manual", hrvDevice: null, hrvPosture: null, hrvOffPosture: false, morningReadingId: null, notes: null,
+          hrvSource: "device_manual", hrvDevice: null, hrvPosture: null, hrvOffPosture: false, morningReadingId: null, notes: null, sleepOnset: null, wakeTime: null,
         };
         sleep.push(row);
       }

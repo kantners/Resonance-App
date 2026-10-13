@@ -65,6 +65,12 @@ export interface BriefResponse {
     consecutiveOut: number;
     tags: ContextTag[];
     message: MessageDto | null;
+    sleepOnset: string | null;
+    wakeTime: string | null;
+    /** Display-only: last meal to sleep onset, late-meal and long-fast markers. Not a rule input. */
+    evening: {
+      lastMealAt: string | null; gapHours: number | null; lateMeal: boolean; fastHours: number | null; longFast: boolean;
+    };
   };
   escalationLevel: number;
   consistency: { inRange: number; logged: number };

@@ -303,6 +303,15 @@ function LastNightTiles({ brief }: { brief: BriefResponse }) {
           <Link href="/log/exposure" className="r-link text-13 min-h-0">Log {fmtWeekday(y.date)} →</Link>
         )}
       </div>
+      {n.evening.gapHours != null && (
+        <div className="r-tile p-3.5 col-span-2 flex flex-col gap-1">
+          <span className="text-12 text-muted">Last meal to sleep</span>
+          <span className="font-mono text-22 font-medium">{n.evening.gapHours} h</span>
+          <span className="text-12 text-ink-soft">
+            {[n.evening.lateMeal ? "Under 3 h" : null, n.evening.longFast && n.evening.fastHours != null ? `fast ran ${n.evening.fastHours} h` : null, "not in the label"].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+      )}
     </section>
   );
 }

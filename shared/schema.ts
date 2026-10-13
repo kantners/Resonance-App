@@ -59,6 +59,8 @@ export const sleepLogs = pgTable("sleep_logs", {
   hrvOffPosture:    boolean("hrv_off_posture").notNull().default(false), // `hrv` came from a reading off the set posture: kept, never averaged
   morningReadingId: integer("morning_reading_id").references(() => morningReadings.id, { onDelete: "set null" }),
   notes:            text("notes"),
+  sleepOnset:       text("sleep_onset"),                          // ISO instant, fell asleep; display/annotation only
+  wakeTime:         text("wake_time"),                            // ISO instant, woke; display/annotation only
 }, (t) => [unique("sleep_user_date").on(t.userId, t.date)]);
 export const insertSleepSchema = createInsertSchema(sleepLogs).omit({ id: true, userId: true });
 export type InsertSleep = z.infer<typeof insertSleepSchema>;

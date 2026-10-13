@@ -63,6 +63,9 @@ export default function FastingScreen() {
     run.mutate({ method: "POST", url: "/api/fasting/start", body: { goalHours: goal, ...(earlier ? { startedAt: at.toISOString() } : {}) } },
       { onSuccess: () => setEarlier(false) });
   }
+  function kitchenClosed() {
+    run.mutate({ method: "POST", url: "/api/fasting/start", body: { goalHours: 16 } });
+  }
   function end() {
     if (active) run.mutate({ method: "POST", url: "/api/fasting/end", body: { id: active.id } });
   }
@@ -118,6 +121,12 @@ export default function FastingScreen() {
         </section>
       ) : (
         <section aria-label="Start a fast" className="r-card p-5 flex flex-col gap-4">
+          <button type="button" className="r-button min-h-[52px] text-16 font-semibold" disabled={run.isPending} onClick={kitchenClosed}>
+            Kitchen closed
+          </button>
+          <p className="m-0 -mt-2 text-12 leading-[1.45] text-ink-soft">
+            One tap at your last bite: starts a 16 h fast now. Fell-asleep time on the Sleep screen then gives your last-meal gap.
+          </p>
           <div className="flex flex-col gap-2">
             <FieldLabel>Goal</FieldLabel>
             <div className="grid grid-cols-5 gap-2" role="group" aria-label="Goal hours">

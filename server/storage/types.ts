@@ -7,7 +7,7 @@ import type {
 
 export type SleepPatch = Partial<Pick<SleepLog,
   "hours" | "sleepScore" | "hrv" | "restingHr" | "hrvSource" | "hrvDevice" | "hrvPosture" | "hrvOffPosture"
-  | "morningReadingId" | "notes">>;
+  | "morningReadingId" | "notes" | "sleepOnset" | "wakeTime">>;
 
 export type UserSettingsPatch = Partial<Pick<User, "firstName" | "timeZone" | "defaultHrvSource" | "defaultHrvDevice" | "hrvPosture">>;
 

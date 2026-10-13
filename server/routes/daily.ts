@@ -11,6 +11,7 @@ import {
 } from "../rules";
 import { badRequest, dateParam, idParam, notFound, rangeQuery, requireAuth, userId, zLocalDate } from "../http";
 import type { BriefResponse } from "@shared/api";
+import { eveningAnnotation, sleepWindowError } from "../rules/evening";
 import type { RouteDeps } from ".";
 
 export function toNight(s: SleepLog): NightInput {
@@ -20,7 +21,7 @@ export function toNight(s: SleepLog): NightInput {
   };
 }
 
-const zIsoInstant = z.string().refine(s => !Number.isNaN(Date.parse(s)) && /T/.test(s), "Expected an ISO date-time");
+export const zIsoInstant = z.string().refine(s => !Number.isNaN(Date.parse(s)) && /T/.test(s), "Expected an ISO date-time");
 
 /**
  * Every HRV value needs its source (device + app), from the request or the
@@ -41,6 +42,8 @@ const zSleep = z.object({
   hrv: z.number().positive().max(400).nullable().optional(),
   restingHr: z.number().int().min(20).max(200).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
+  sleepOnset: zIsoInstant.nullable().optional(),
+  wakeTime: zIsoInstant.nullable().optional(),
   hrvSource: zHrvSource.optional(),
   hrvDevice: z.string().trim().max(120).optional(),
 }).strict();
@@ -148,6 +151,9 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
       return { date: d, hrv: n?.hrv ?? null, rhr: n?.rhr ?? null, state: n ? nightStateOn(nights, d, flag) : null };
     });
 
+    const fastHistory = await storage.getFastingHistory(uid, 30);
+    const evening = eveningAnnotation(lastSleep?.sleepOnset ?? null, fastHistory, deps.now());
+
     const body: BriefResponse = {
       date,
       ruleVersion: RULE_VERSION,
@@ -186,6 +192,9 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
         consecutiveOut: status.consecutiveNightsOut,
         tags,
         message: brief.messages.lastNight,
+        sleepOnset: lastSleep?.sleepOnset ?? null,
+        wakeTime: lastSleep?.wakeTime ?? null,
+        evening,
       },
       escalationLevel: status.escalationLevel,
       consistency: status.consistency,
@@ -219,11 +228,20 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
   app.post("/api/sleep", requireAuth, async (req, res) => {
     const uid = userId(req);
     const { date, hrvSource, hrvDevice, ...fields } = zSleep.parse(req.body);
+    const windowErr = sleepWindowError(fields.sleepOnset, fields.wakeTime);
+    if (windowErr) throw badRequest(windowErr);
     // An HRV typed in here is an overnight value: it carries no posture.
     const source = fields.hrv != null
       ? { ...hrvSourceFor(await currentUser(uid), { hrvSource, hrvDevice }), hrvPosture: null, hrvOffPosture: false }
       : {};
     res.json(await storage.upsertSleep(uid, date, { ...fields, ...source }));
+  });
+
+  // Display-only evening annotation for one night (keyed by wake date).
+  app.get("/api/evening/:date", requireAuth, async (req, res) => {
+    const uid = userId(req);
+    const sleep = await storage.getSleep(uid, dateParam(req));
+    res.json(eveningAnnotation(sleep?.sleepOnset ?? null, await storage.getFastingHistory(uid, 30), deps.now()));
   });
 
   // ── Morning reading (manual in Layer 0; source required) ──────────────────
