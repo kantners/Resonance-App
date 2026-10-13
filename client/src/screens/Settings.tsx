@@ -10,26 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { deviceTimeZone } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
-
-type ThemeChoice = "system" | "light" | "dark";
-const THEME_KEY = "resonance-theme";
-
-function readTheme(): ThemeChoice {
-  try {
-    const v = localStorage.getItem(THEME_KEY);
-    return v === "light" || v === "dark" ? v : "system";
-  } catch { return "system"; }
-}
-
-/** Same rule as the pre-paint script in index.html: only Light/Dark set data-theme. */
-function applyTheme(choice: ThemeChoice) {
-  try {
-    if (choice === "system") localStorage.removeItem(THEME_KEY);
-    else localStorage.setItem(THEME_KEY, choice);
-  } catch { /* storage blocked: the choice lasts for this visit only */ }
-  if (choice === "system") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", choice);
-}
+import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
 
 export default function SettingsScreen() {
   const { data: me } = useMe();

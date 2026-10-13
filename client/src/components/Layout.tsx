@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useMe } from "@/lib/api";
+import { toggleTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { BackIcon, BriefIcon, LogIcon, StudyIcon, TrendsIcon } from "./Icons";
 
@@ -9,13 +10,14 @@ export function DemoTag() {
   return <span className="r-demo-tag" role="note">Illustrative data</span>;
 }
 
-function NavItem({ href, label, icon, active }: { href: string; label: string; icon: ReactNode; active: boolean }) {
+function NavItem({ href, label, icon, active, onClick }: { href: string; label: string; icon: ReactNode; active: boolean; onClick?: () => void }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex flex-col items-center justify-center gap-px min-h-[44px] no-underline text-12 leading-none",
+        "r-nav-item flex flex-col items-center justify-center gap-px min-h-[44px] no-underline text-12 leading-none",
         active ? "text-ink font-semibold hover:text-ink" : "text-muted font-medium hover:text-ink",
       )}
     >
@@ -28,6 +30,13 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
 function BottomNav() {
   const [location] = useLocation();
   const { data: me } = useMe();
+  // Easter egg: three taps on Brief within 0.7s flips light/dark.
+  const taps = useRef<number[]>([]);
+  const onBriefTap = () => {
+    const now = Date.now();
+    taps.current = [...taps.current.filter(t => now - t < 700), now];
+    if (taps.current.length >= 3) { taps.current = []; toggleTheme(); }
+  };
   const tabs = [
     { href: "/", label: "Brief", icon: <BriefIcon />, match: (l: string) => l === "/" || l === "/how" },
     { href: "/log", label: "Log", icon: <LogIcon />, match: (l: string) => l.startsWith("/log") },
@@ -44,7 +53,8 @@ function BottomNav() {
       className="sticky bottom-0 grid border-t border-line bg-surface px-2 pt-1 pb-[max(4px,env(safe-area-inset-bottom))]"
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
-      {tabs.map(t => <NavItem key={t.href} href={t.href} label={t.label} icon={t.icon} active={t.match(location)} />)}
+      {tabs.map(t => <NavItem key={t.href} href={t.href} label={t.label} icon={t.icon} active={t.match(location)}
+        onClick={t.href === "/" ? onBriefTap : undefined} />)}
     </nav>
   );
 }

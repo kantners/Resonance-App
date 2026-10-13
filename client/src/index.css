@@ -161,3 +161,59 @@
       font-mono text-11 tracking-badge uppercase;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FEEDBACK AND MOTION: press, focus, arrival, theme cross-fade.
+   Anything that MOVES sits inside prefers-reduced-motion: no-preference;
+   focus glows and color states apply to everyone.
+   ══════════════════════════════════════════════════════════════════════ */
+.theme-fade, .theme-fade * {
+  transition: background-color .4s ease, color .4s ease, border-color .4s ease, fill .4s ease, stroke .4s ease !important;
+}
+
+/* Fields: a teal focus glow instead of a hard outline (still clearly visible). */
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: none;
+  border-color: rgb(var(--physiology));
+  box-shadow: 0 0 0 3px rgb(var(--physiology) / 0.2);
+}
+
+/* Active tab: a short teal bar above the label. */
+.r-nav-item { position: relative; }
+.r-nav-item[aria-current="page"]::before {
+  content: ""; position: absolute; top: -4px; left: 50%; width: 22px; height: 2px;
+  margin-left: -11px; border-radius: 2px; background: rgb(var(--physiology));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .r-button, .r-button-quiet, .r-chip {
+    transition: transform .14s cubic-bezier(.3, .7, .4, 1.5), background-color .18s ease,
+      border-color .18s ease, color .18s ease, box-shadow .2s ease;
+  }
+  .r-button:active:not(:disabled), .r-button-quiet:active:not(:disabled), .r-chip:active { transform: scale(.96); }
+  @media (hover: hover) {
+    .r-button:hover:not(:disabled) { box-shadow: 0 6px 16px rgb(var(--shadow) / 0.18); transform: translateY(-1px); }
+    .r-button-quiet:hover:not(:disabled), .r-chip:hover { border-color: rgb(var(--physiology)); }
+  }
+  input, textarea, select { transition: border-color .18s ease, box-shadow .22s ease; }
+  [aria-invalid="true"] { animation: r-shake .32s ease; }
+
+  /* Screens arrive: each block rises in, slightly staggered. */
+  main > * { animation: r-rise .4s cubic-bezier(.2, .7, .2, 1) both; }
+  main > :nth-child(2) { animation-delay: 45ms; }
+  main > :nth-child(3) { animation-delay: 90ms; }
+  main > :nth-child(4) { animation-delay: 135ms; }
+  main > :nth-child(5) { animation-delay: 180ms; }
+  main > :nth-child(n+6) { animation-delay: 220ms; }
+
+  .r-nav-item svg { transition: transform .15s cubic-bezier(.3, .7, .4, 1.5); }
+  .r-nav-item:active svg { transform: scale(.85); }
+  .r-nav-item[aria-current="page"]::before { animation: r-bar .28s cubic-bezier(.2, .7, .2, 1) both; }
+}
+
+@keyframes r-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes r-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes r-shake {
+  0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+}
