@@ -33,7 +33,7 @@ Return: {"type":"sleep","data":{...},"confidence":{...}}
 FIELD RULES:
 - "date": the wake date as YYYY-MM-DD if a date is visible, otherwise null.
 - "hours": total sleep in decimal hours ("6h 53m" → 6.88).
-- "sleep_score": the score numerator only ("80 / 100" → 80).
+- "sleep_score": the overall sleep score, usually the largest number near the top of the screen, labelled "Score" or "Sleep score". It may be written "80 / 100" or stacked with the number above a smaller "100" (83 over 100 → 83). Return the numerator only. Do NOT use the Quality word (Good/Fair), Body Battery change, or any factor rating.
 - "hrv": average overnight HRV in ms. NOT a 7-day average.
 - "resting_hr": resting heart rate in bpm. NOT the average overnight heart rate.
 - "bed_time" and "wake_time": the clock times the sleep started and ended, as 24-hour "HH:MM" ("10:42 PM" → "22:42", "6:35 AM" → "06:35"). Use the sleep session's start and end shown on the screen. null if not shown.
