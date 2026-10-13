@@ -11,7 +11,7 @@ export function UnitInput({
   return (
     <label
       className={cn(
-        "flex items-center h-12 box-border rounded-control px-3.5 gap-1.5 bg-surface",
+        "flex items-center h-12 box-border rounded-control gap-1.5 bg-surface min-w-0", type === "time" ? "px-2.5" : "px-3.5",
         invalid ? "border-2 border-exposure bg-exposure-field" : "border border-control",
       )}
     >
@@ -24,7 +24,7 @@ export function UnitInput({
         inputMode={inputMode}
         type={type}
         placeholder={placeholder}
-        className="w-full border-0 outline-none bg-transparent font-mono text-18 text-ink min-w-0"
+        className={cn("w-full border-0 outline-none bg-transparent font-mono text-ink min-w-0", type === "time" ? "r-time text-15 tracking-tight" : "text-18")}
       />
       {unit && <span className="text-13 text-muted whitespace-nowrap">{unit}</span>}
     </label>

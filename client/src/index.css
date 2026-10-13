@@ -231,3 +231,8 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   100% { opacity: 0; transform: translateY(-4px); }
 }
 @keyframes r-tick { to { stroke-dashoffset: 0; } }
+
+/* Time inputs: drop the picker icon so "10:29 PM" fits the field; tapping the field still opens the picker. */
+input.r-time::-webkit-calendar-picker-indicator { display: none; }
+input.r-time::-webkit-datetime-edit { padding: 0; white-space: nowrap; }
+input.r-time { font-variant-numeric: tabular-nums; }
