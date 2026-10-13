@@ -16,6 +16,7 @@ import ExposureManualScreen from "@/screens/ExposureManual";
 import { ExposureScreenshotScreen, SleepScreenshotScreen } from "@/screens/ScreenshotScreens";
 import StudyScreen from "@/screens/Study";
 import SettingsScreen from "@/screens/Settings";
+import FastingScreen from "@/screens/Fasting";
 import { PrivacyScreen, TermsScreen } from "@/screens/Legal";
 import { PendingSubScreen, PendingTabScreen } from "@/screens/Pending";
 
@@ -35,7 +36,7 @@ function Screens() {
       {/* Scheduled after October 4 (step 9b) */}
       <Route path="/log/stillness">{() => <PendingSubScreen title="Log stillness" />}</Route>
       <Route path="/log/reading">{() => <PendingSubScreen title="Reading" />}</Route>
-      <Route path="/log/fasting">{() => <PendingSubScreen title="Fasting" />}</Route>
+      <Route path="/log/fasting" component={FastingScreen} />
       <Route path="/quiet/:date">{() => <PendingSubScreen title="The missing quiet" back={{ href: "/", label: "Brief" }} />}</Route>
       <Route path="/study/session">{() => <PendingSubScreen title="Session record" back={{ href: "/study", label: "Study" }} />}</Route>
       <Route path="/trends">{() => <PendingTabScreen title="Trends" />}</Route>

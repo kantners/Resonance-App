@@ -86,3 +86,4 @@ Status key: [done] [spec] [open = answer needed before build]
 - Q2. Switch the pattern callout to evening minutes once 14 qualifying nights exist (proposed), or keep daily totals?
 - Q3. Builder: Claude in this chat via the device shell, or Claude Code from this spec?
 - Q4. Merge the palette commit into `build/layer-0` before October 20?
+- Q5. Fasting, phase B (deferred by Mark on Oct 13; phase A, the plain tracker, is built). (a) Record "last meal" when a fast ends and compute the last-meal-to-sleep-onset gap each night, as another anchored window like the evening screen window. (b) Add a late-meal confounder tag. (c) Mark long-fast days (about 20 h or more) as their own stratum so they don't read as unexplained HRV drops. Any change to the rules needs a new RULE_VERSION and a baseline restart for the affected fields. Fasting stays out of the Brief's recovery wording until this is specified.
