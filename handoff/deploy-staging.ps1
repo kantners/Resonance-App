@@ -11,7 +11,9 @@ function Check($what) { if ($LASTEXITCODE -ne 0) { Write-Host "STOPPED at: $what
 function Plain($secure) { [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)) }
 
 Step '0. Project link (this folder is already linked to Railway project Resonance)'
-railway status | Select-Object -First 4; Check 'railway status'
+$st = railway status 2>&1 | Out-String; $stExit = $LASTEXITCODE
+if ($stExit -ne 0 -or $st -notmatch 'Project:\s+Resonance') { Write-Host $st; Write-Host 'STOPPED at: railway status. Paste the output above to Claude.' -ForegroundColor Red; exit 1 }
+Write-Host 'Linked to Railway project Resonance (production).'
 Write-Host ("Deploying the code on branch: " + (git branch --show-current))
 
 Step '1. resonance service'
@@ -33,12 +35,12 @@ $names = (railway variables --service resonance --json | Out-String | ConvertFro
 if ($names -contains 'SESSION_SECRET') { Write-Host 'SESSION_SECRET already set, keeping it.' }
 else {
   $s = node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-  railway variables --service resonance --skip-deploys --set "SESSION_SECRET=$s" | Out-Null; Check 'set SESSION_SECRET'
+  $s | railway variables --service resonance --skip-deploys --set-from-stdin SESSION_SECRET | Out-Null; Check 'set SESSION_SECRET'
   Remove-Variable s; Write-Host 'SESSION_SECRET set.'
 }
 if ($names -notcontains 'OPENAI_API_KEY') {
   $k = Plain (Read-Host 'OpenAI API key for screenshot import (press Enter to skip)' -AsSecureString)
-  if ($k) { railway variables --service resonance --skip-deploys --set "OPENAI_API_KEY=$k" | Out-Null; Check 'set OPENAI_API_KEY' }
+  if ($k) { $k | railway variables --service resonance --skip-deploys --set-from-stdin OPENAI_API_KEY | Out-Null; Check 'set OPENAI_API_KEY' }
   Remove-Variable k
 }
 
