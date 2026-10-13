@@ -16,6 +16,7 @@ type Def = { key: string; label: string; unit: string; mode?: "numeric" | "decim
 const SLEEP: Def[] = [
   { key: "asleep_h", label: "Hours asleep", unit: "h" },
   { key: "asleep_m", label: "Minutes asleep", unit: "m" },
+  { key: "sleep_score", label: "Sleep score", unit: "/ 100" },
   { key: "hrv", label: "HRV", unit: "ms", mode: "decimal" },
   { key: "resting_hr", label: "Resting HR", unit: "bpm" },
   { key: "bed_time", label: "Fell asleep", unit: "", mode: "time" },
@@ -36,7 +37,7 @@ function toForm(kind: ShotKind, d: Record<string, any>): Record<string, string> 
   const s = (v: unknown) => (v == null ? "" : String(v));
   if (kind === "sleep") {
     if (d.hours != null) { const t = Math.round(d.hours * 60); o.asleep_h = String(Math.floor(t / 60)); o.asleep_m = String(t % 60); }
-    o.hrv = s(d.hrv); o.resting_hr = s(d.resting_hr);
+    o.sleep_score = s(d.sleep_score); o.hrv = s(d.hrv); o.resting_hr = s(d.resting_hr);
     for (const k of ["bed_time", "wake_time"]) o[k] = typeof d[k] === "string" && isClock(d[k]) ? d[k] : "";
   } else {
     if (d.total_min != null) { const t = Math.round(d.total_min); o.total_h = String(Math.floor(t / 60)); o.total_m = String(t % 60); }
@@ -47,7 +48,7 @@ function toForm(kind: ShotKind, d: Record<string, any>): Record<string, string> 
 
 /** Which form fields a server-side low-confidence key affects. */
 const LOW_TO_FORM: Record<string, string[]> = {
-  hours: ["asleep_h", "asleep_m"], hrv: ["hrv"], resting_hr: ["resting_hr"], bed_time: ["bed_time"], wake_time: ["wake_time"],
+  hours: ["asleep_h", "asleep_m"], sleep_score: ["sleep_score"], hrv: ["hrv"], resting_hr: ["resting_hr"], bed_time: ["bed_time"], wake_time: ["wake_time"],
   total_min: ["total_h", "total_m"], pickups: ["pickups"], social_min: ["social_min"],
   entertainment_min: ["entertainment_min"], productivity_min: ["productivity_min"],
 };
@@ -130,6 +131,7 @@ export default function ScreenshotImport({ kind, date }: { kind: ShotKind; date:
     let data: Record<string, unknown>;
     if (kind === "sleep") {
       const h = intOrNull(form.asleep_h ?? "", 24), m = intOrNull(form.asleep_m ?? "", 59);
+      const sc = intOrNull(form.sleep_score ?? "", 100);
       const hv = num(form.hrv ?? ""), rh = intOrNull(form.resting_hr ?? "", 200);
       if (hv != null && (Number.isNaN(hv) || hv <= 0 || hv > 400)) return setError("HRV should be between 1 and 400 ms.");
       const bed = form.bed_time ?? "", wk = form.wake_time ?? "";
@@ -140,7 +142,7 @@ export default function ScreenshotImport({ kind, date }: { kind: ShotKind; date:
       data = {
         date,
         hours: h != null || m != null ? (h ?? 0) + (m ?? 0) / 60 : null,
-        hrv: hv, resting_hr: rh != null && rh >= 20 ? rh : null,
+        sleep_score: sc, hrv: hv, resting_hr: rh != null && rh >= 20 ? rh : null,
         sleep_onset: win.sleepOnset, wake_time: win.wakeTime,
         ...(hv != null ? { hrv_device: dev } : {}),
       };
