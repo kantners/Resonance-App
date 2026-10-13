@@ -15,7 +15,7 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex flex-col items-center justify-center gap-[3px] min-h-[50px] no-underline text-12",
+        "flex flex-col items-center justify-center gap-px min-h-[44px] no-underline text-12 leading-none",
         active ? "text-ink font-semibold hover:text-ink" : "text-muted font-medium hover:text-ink",
       )}
     >
@@ -39,7 +39,9 @@ function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 grid border-t border-line bg-surface px-2 pt-1.5 pb-6"
+      // 44px tap targets (the floor); bottom padding only as tall as the phone's
+      // home-indicator area (iPhone), otherwise 4px.
+      className="sticky bottom-0 grid border-t border-line bg-surface px-2 pt-1 pb-[max(4px,env(safe-area-inset-bottom))]"
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
       {tabs.map(t => <NavItem key={t.href} href={t.href} label={t.label} icon={t.icon} active={t.match(location)} />)}
