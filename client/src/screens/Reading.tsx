@@ -53,7 +53,7 @@ export default function ReadingScreen() {
         <div role="group" aria-label="Reading medium" className="flex flex-col gap-2">
           {MEDIA.map(o => (
             <button key={o.id} type="button" aria-pressed={medium === o.id} onClick={() => setMedium(o.id)}
-              className="r-chip !h-auto min-h-[64px] !justify-start !items-start flex-col gap-0.5 px-4 py-3 text-left"
+              className="r-chip flex flex-col items-start justify-start !rounded-control gap-0.5 min-h-[64px] px-4 py-3 text-left"
               style={bad.medium ? { borderColor: "rgb(var(--exposure))", borderWidth: 2 } : undefined}>
               <span className="text-15 font-medium">{o.title}</span>
               <span className="text-12 text-ink-soft">{o.sub}</span>
