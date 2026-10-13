@@ -74,7 +74,7 @@ export default function StillnessScreen() {
   const extra = data?.breathwork?.reduce((a, b) => a + b.durationMin, 0) ?? 0;
 
   return (
-    <SubScreen back={{ href: "/log", label: "Log" }} title="Log stillness"
+    <SubScreen back={{ href: "/log", label: "Log" }} title="Stillness"
       meta={<DateStepper date={date} onChange={setDate} max={today} />} demo={me?.isDemo}>
       <p className="m-0 text-13 leading-[1.45] text-ink-soft">Time you chose to spend without input. Counted separately from time the phone simply wasn't used.</p>
 
