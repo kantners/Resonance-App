@@ -12,45 +12,52 @@
    Source: design/screens/*.html, September 2026.
    ══════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Base */
-  --ground: 243 244 241;          /* page background */
+  /* Base: Blue Ember linen + navy (October 2026) */
+  --ground: 245 243 238;          /* page background: linen #f5f3ee */
   --surface: 255 255 255;         /* cards, nav */
-  --ink: 21 25 28;                /* primary text, marks, primary buttons */
-  --ink-soft: 62 69 75;           /* body copy on cards */
-  --muted: 84 91 97;              /* secondary labels, captions */
-  --neutral: 107 114 120;         /* neutral data bars */
-  --neutral-line: 138 144 149;    /* neutral chart lines */
-  --placeholder: 154 162 157;     /* dashed placeholder borders */
-  --control: 201 207 203;         /* input and chip borders, axes */
-  --line: 217 221 218;            /* card borders, dividers */
-  --track: 227 230 227;           /* bar tracks, inner dividers */
-  --stripe: 231 234 231;          /* placeholder stripes */
-  --wash: 238 240 236;            /* neutral badge / icon wash */
-  --hairline: 238 240 238;        /* row separators */
+  --ink: 18 40 58;                /* primary text, marks, primary buttons: navy #12283a (13.6:1 on ground) */
+  --ink-soft: 42 83 110;          /* body copy on cards: #2a536e (8.2:1) */
+  --muted: 79 98 106;             /* secondary labels, captions: website ash #4F626A (5.8:1 on ground) */
+  --neutral: 96 119 128;          /* neutral data bars: #607780 (4.7:1) */
+  --neutral-line: 138 155 162;    /* neutral chart lines */
+  --placeholder: 163 172 168;     /* dashed placeholder borders */
+  --control: 205 200 189;         /* input and chip borders, axes */
+  --line: 221 216 205;            /* card borders, dividers */
+  --track: 230 226 216;           /* bar tracks, inner dividers */
+  --stripe: 233 229 220;          /* placeholder stripes */
+  --wash: 238 235 227;            /* neutral badge / icon wash */
+  --hairline: 239 236 229;        /* row separators */
 
-  /* Physiology (HRV, resting HR): blue */
-  --physiology: 31 95 168;
-  --physiology-strong: 23 74 132; /* link hover, text on physiology wash */
-  --physiology-range-line: 143 169 204;
-  --physiology-quiet: 214 225 238; /* quiet stretches */
-  --physiology-range: 213 222 233; /* normal-range band */
-  --physiology-wash: 230 236 244;
+  /* Physiology (HRV, resting HR): Blue Ember deep teal.
+     #1A6877 (website --be-ember-deep), 6.4:1 on white. Chosen over the lighter
+     brand teal #21778e so it differs from the exposure gold in LIGHTNESS as well
+     as hue (about 2:1 between the two marks), so the pair survives grayscale and
+     color-vision deficiency. */
+  --physiology: 26 104 119;
+  --physiology-strong: 23 79 94;  /* link hover, text on physiology wash: #174f5e */
+  --physiology-range-line: 143 188 203;
+  --physiology-quiet: 208 234 241; /* quiet stretches */
+  --physiology-range: 214 232 238; /* normal-range band */
+  --physiology-wash: 232 244 247;
 
-  /* Exposure (screen time, pickups): orange */
-  --exposure: 180 80 11;
-  --exposure-strong: 138 60 6;    /* warnings, text on exposure wash */
-  --exposure-mid: 217 137 74;
-  --exposure-wash: 251 237 226;
-  --exposure-field: 255 248 242;  /* highlighted (low-confidence) inputs */
+  /* Exposure (screen time, pickups): Blue Ember gold, darkened for marks.
+     Brand gold #b8913a is 2.9:1 on white (below the 3:1 minimum for graphics),
+     so marks use #b08a35 (3.2:1) and text uses gold-text #7a5518 (6.7:1). */
+  --exposure: 176 138 53;
+  --exposure-strong: 122 85 24;   /* warnings, text on exposure wash (6.1:1 on the wash) */
+  --exposure-mid: 212 168 67;     /* brand gold-bright, secondary/lighter bars only */
+  --exposure-wash: 249 244 232;
+  --exposure-field: 253 250 242;  /* highlighted (low-confidence) inputs */
 
   /* Status */
-  --alert: 138 60 6;              /* errors and low-confidence notes (kept in the exposure family) */
-  --shadow: 21 25 28;             /* used at 12% for overlays */
+  --alert: 122 85 24;             /* errors and low-confidence notes (kept in the exposure family) */
+  --shadow: 18 40 58;             /* used at 12% for overlays */
 
-  /* Type */
-  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Type: Blue Ember website faces for words; Plex Mono kept for every number
+     (instrument readout, tabular figures). Cormorant is a display face: titles only. */
+  --font-sans: 'Work Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 
   /* shadcn/ui primitives (toast etc.) reuse the tokens above */
   --radius: 0.625rem;
