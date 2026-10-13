@@ -145,6 +145,30 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       return row;
     },
     async listStillness(userId, from, to) { return stillness.filter(s => s.userId === userId && inRange(s.date, from, to)).sort(byDate); },
+    async patchStillness(userId, sid, patch) {
+      const s = stillness.find(x => x.id === sid && x.userId === userId);
+      if (!s || !Object.keys(patch).length) return null;
+      Object.assign(s, patch);
+      return s;
+    },
+    async deleteStillness(userId, sid) {
+      const i = stillness.findIndex(x => x.id === sid && x.userId === userId);
+      if (i < 0) return false;
+      stillness.splice(i, 1);
+      return true;
+    },
+    async patchReading(userId, rid, patch) {
+      const r = reading.find(x => x.id === rid && x.userId === userId);
+      if (!r || !Object.keys(patch).length) return null;
+      Object.assign(r, patch);
+      return r;
+    },
+    async deleteReading(userId, rid) {
+      const i = reading.findIndex(x => x.id === rid && x.userId === userId);
+      if (i < 0) return false;
+      reading.splice(i, 1);
+      return true;
+    },
     async createReading(userId, data) {
       const row = { id: id(), userId, startedAt: null, title: null, createdAt: new Date(), ...data } as ReadingLog;
       reading.push(row);

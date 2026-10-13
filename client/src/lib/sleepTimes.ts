@@ -5,7 +5,7 @@ import { addDays } from "@/lib/dates";
 const CLOCK = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export const isClock = (v: string) => CLOCK.test(v);
 
-function at(date: string, clock: string): Date {
+export function at(date: string, clock: string): Date {
   const [y, mo, d] = date.split("-").map(Number);
   const [h, mi] = clock.split(":").map(Number);
   return new Date(y, mo - 1, d, h, mi, 0, 0);

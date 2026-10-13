@@ -160,6 +160,26 @@ export function createDbStorage(db: NodePgDatabase): IStorage {
         .where(and(eq(stillnessSessions.userId, userId), ...dateRange(stillnessSessions.date, from, to)))
         .orderBy(asc(stillnessSessions.date), asc(stillnessSessions.startedAt));
     },
+    async patchStillness(userId, id, patch) {
+      if (!Object.keys(patch).length) return null;
+      const rows = await db.update(stillnessSessions).set(patch)
+        .where(and(eq(stillnessSessions.id, id), eq(stillnessSessions.userId, userId))).returning();
+      return rows[0] ?? null;
+    },
+    async deleteStillness(userId, id) {
+      const r = await db.delete(stillnessSessions).where(and(eq(stillnessSessions.id, id), eq(stillnessSessions.userId, userId)));
+      return (r.rowCount ?? 0) > 0;
+    },
+    async patchReading(userId, id, patch) {
+      if (!Object.keys(patch).length) return null;
+      const rows = await db.update(readingLogs).set(patch)
+        .where(and(eq(readingLogs.id, id), eq(readingLogs.userId, userId))).returning();
+      return rows[0] ?? null;
+    },
+    async deleteReading(userId, id) {
+      const r = await db.delete(readingLogs).where(and(eq(readingLogs.id, id), eq(readingLogs.userId, userId)));
+      return (r.rowCount ?? 0) > 0;
+    },
     async createReading(userId, data) {
       const rows = await db.insert(readingLogs).values({ ...data, userId }).returning();
       return rows[0];

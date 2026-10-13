@@ -9,6 +9,9 @@ export type SleepPatch = Partial<Pick<SleepLog,
   "hours" | "sleepScore" | "hrv" | "restingHr" | "hrvSource" | "hrvDevice" | "hrvPosture" | "hrvOffPosture"
   | "morningReadingId" | "notes" | "sleepOnset" | "wakeTime">>;
 
+export type StillnessPatch = Partial<Pick<StillnessSession, "minutes" | "startedAt" | "phoneLocation" | "notes">>;
+export type ReadingPatch = Partial<Pick<ReadingLog, "durationMin" | "medium" | "title" | "startedAt">>;
+
 export type UserSettingsPatch = Partial<Pick<User, "firstName" | "timeZone" | "defaultHrvSource" | "defaultHrvDevice" | "hrvPosture">>;
 
 export type ProtocolInsert = Omit<StudyProtocol, "id" | "createdAt" | "lockedAt" | "completedAt"
@@ -86,6 +89,10 @@ export interface IStorage {
   listStillness(userId: number, from?: string, to?: string): Promise<StillnessSession[]>;
   createReading(userId: number, data: InsertReadingLog): Promise<ReadingLog>;
   listReading(userId: number, from?: string, to?: string): Promise<ReadingLog[]>;
+  patchStillness(userId: number, id: number, patch: StillnessPatch): Promise<StillnessSession | null>;
+  deleteStillness(userId: number, id: number): Promise<boolean>;
+  patchReading(userId: number, id: number, patch: ReadingPatch): Promise<ReadingLog | null>;
+  deleteReading(userId: number, id: number): Promise<boolean>;
 
   // Digital exposure (one row per day) and phone events
   upsertExposure(userId: number, data: InsertDigitalExposure): Promise<DigitalExposure>;

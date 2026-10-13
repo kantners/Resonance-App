@@ -302,6 +302,38 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
     res.json(await storage.createReading(userId(req), zReading.parse(req.body)));
   });
 
+  app.patch("/api/stillness/:id", requireAuth, async (req, res) => {
+    const body = z.object({
+      minutes: z.number().int().min(1).max(24 * 60).optional(),
+      startedAt: zIsoInstant.optional(),
+      phoneLocation: zPhoneLocation.optional(),
+      notes: z.string().max(2000).nullable().optional(),
+    }).strict().parse(req.body);
+    const row = await storage.patchStillness(userId(req), idParam(req), body);
+    if (!row) throw notFound();
+    res.json(row);
+  });
+
+  app.delete("/api/stillness/:id", requireAuth, async (req, res) => {
+    res.json({ ok: await storage.deleteStillness(userId(req), idParam(req)) });
+  });
+
+  app.patch("/api/reading/:id", requireAuth, async (req, res) => {
+    const body = z.object({
+      durationMin: z.number().int().min(1).max(24 * 60).optional(),
+      medium: zReadingMedium.optional(),
+      title: z.string().trim().max(200).nullable().optional(),
+      startedAt: zIsoInstant.nullable().optional(),
+    }).strict().parse(req.body);
+    const row = await storage.patchReading(userId(req), idParam(req), body);
+    if (!row) throw notFound();
+    res.json(row);
+  });
+
+  app.delete("/api/reading/:id", requireAuth, async (req, res) => {
+    res.json({ ok: await storage.deleteReading(userId(req), idParam(req)) });
+  });
+
   app.get("/api/reading", requireAuth, async (req, res) => {
     const { from, to } = rangeQuery(req);
     res.json(await storage.listReading(userId(req), from, to));
