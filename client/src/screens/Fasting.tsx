@@ -9,7 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { errorText, useMe } from "@/lib/api";
 import { signalError, signalSaved } from "@/lib/feedback";
 
-const PRESETS = [12, 14, 16, 18, 20, 24, 36];
+const PRESETS = [12, 14, 16, 18, 20, 24, 30, 36, 40, 48];
 
 const toLocalInput = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -120,9 +120,9 @@ export default function FastingScreen() {
         <section aria-label="Start a fast" className="r-card p-5 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <FieldLabel>Goal</FieldLabel>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Goal hours">
+            <div className="grid grid-cols-5 gap-2" role="group" aria-label="Goal hours">
               {PRESETS.map(h => (
-                <button key={h} type="button" className="r-chip min-h-[44px] px-3.5" aria-pressed={goal === h} onClick={() => setGoal(h)}>{h}h</button>
+                <button key={h} type="button" className="r-chip min-h-[44px] px-0 justify-center" aria-pressed={goal === h} onClick={() => setGoal(h)}>{h}h</button>
               ))}
             </div>
           </div>
