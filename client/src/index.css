@@ -49,6 +49,11 @@
   --exposure-wash: 249 244 232;
   --exposure-field: 253 250 242;  /* highlighted (low-confidence) inputs */
 
+  /* Brand (decoration only: thin rules and the byline, never fills or chart marks,
+     so brand gold is never mistaken for the exposure signal) */
+  --brand-rule: 184 145 58;       /* Blue Ember gold #b8913a, 1px rules */
+  --brand-text: 122 85 24;        /* gold-text #7a5518, 6.7:1 on white */
+
   /* Status */
   --alert: 122 85 24;             /* errors and low-confidence notes (kept in the exposure family) */
   --shadow: 18 40 58;             /* used at 12% for overlays */
@@ -82,7 +87,7 @@
   --physiology-quiet: 24 63 82; --physiology-range: 23 58 76; --physiology-wash: 19 52 71;
   --exposure: 184 137 47; --exposure-strong: 240 201 112; --exposure-mid: 138 106 42;
   --exposure-wash: 43 38 20; --exposure-field: 36 31 18;
-  --alert: 240 201 112; --shadow: 0 0 0;
+  --alert: 240 201 112; --shadow: 0 0 0; --brand-rule: 224 184 95; --brand-text: 240 201 112;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -94,7 +99,7 @@
     --physiology-quiet: 24 63 82; --physiology-range: 23 58 76; --physiology-wash: 19 52 71;
     --exposure: 184 137 47; --exposure-strong: 240 201 112; --exposure-mid: 138 106 42;
     --exposure-wash: 43 38 20; --exposure-field: 36 31 18;
-    --alert: 240 201 112; --shadow: 0 0 0;
+    --alert: 240 201 112; --shadow: 0 0 0; --brand-rule: 224 184 95; --brand-text: 240 201 112;
     color-scheme: dark;
   }
 }

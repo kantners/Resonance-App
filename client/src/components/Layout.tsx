@@ -64,7 +64,10 @@ export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?
   return (
     <header className="flex flex-col gap-1">
       <div className="flex justify-between items-center">
-        <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
+        <span className="flex items-center gap-2">
+          <img src="/brand-shield.png" alt="" width={16} height={21} className="w-4 h-auto" />
+          <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
+        </span>
         {meta && <span className="font-mono text-12 tracking-header text-muted">{meta}</span>}
       </div>
       <h1 className="r-title">{title}</h1>

@@ -34,9 +34,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-ground px-6 py-6">
-      <div className="text-center mb-10">
-        <div className="font-serif text-40 font-medium text-ink mb-1">Resonance</div>
-        <div className="font-mono text-12 tracking-header text-muted uppercase">Blue Ember Wellness</div>
+      <div className="flex flex-col items-center mb-10">
+        <img src="/brand-shield.png" alt="" width={62} height={80} className="w-[62px] h-auto mb-5" />
+        {/* Lockup: the byline row stretches to exactly the width of "Resonance";
+            the two rules take only the space the text leaves. */}
+        <div className="inline-flex flex-col items-stretch gap-3">
+          <h1 className="m-0 font-serif font-semibold text-[54px] leading-none text-ink text-center">Resonance</h1>
+          <div className="flex items-center gap-2" aria-label="by Blue Ember Wellness">
+            <span aria-hidden="true" className="flex-1 min-w-[8px] h-px bg-[rgb(var(--brand-rule))]" />
+            <span className="font-mono text-11 tracking-[0.14em] uppercase whitespace-nowrap text-[rgb(var(--brand-text))]">By Blue Ember Wellness</span>
+            <span aria-hidden="true" className="flex-1 min-w-[8px] h-px bg-[rgb(var(--brand-rule))]" />
+          </div>
+        </div>
       </div>
 
       <div className="w-full max-w-[400px] r-card p-6 box-border">
