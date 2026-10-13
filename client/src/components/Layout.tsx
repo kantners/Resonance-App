@@ -65,14 +65,23 @@ export function TabScreen({ children, label }: { children: ReactNode; label?: st
 export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?: string; title: string; demo?: boolean }) {
   return (
     <header className="flex flex-col gap-1">
+      {/* Brand row: larger than the page title; byline justified to the name's width. */}
+      <div className="flex items-center gap-3 mb-4">
+        <img src="/brand-shield.png" alt="" width={34} height={44} className="w-[34px] h-auto" />
+        <div className="inline-flex flex-col items-stretch gap-1.5">
+          <span className="font-serif font-semibold text-[40px] leading-none text-ink">Resonance</span>
+          <span className="flex items-center gap-1.5" aria-label="by Blue Ember Wellness">
+            <span aria-hidden="true" className="flex-1 min-w-[6px] h-px bg-[rgb(var(--brand-rule))]" />
+            <span className="font-mono text-[9px] tracking-[0.12em] uppercase whitespace-nowrap text-[rgb(var(--brand-text))]">By Blue Ember Wellness</span>
+            <span aria-hidden="true" className="flex-1 min-w-[6px] h-px bg-[rgb(var(--brand-rule))]" />
+          </span>
+        </div>
+      </div>
       <div className="flex justify-between items-center">
-        <span className="flex items-center gap-2">
-          <img src="/brand-shield.png" alt="" width={16} height={21} className="w-4 h-auto" />
-          <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
-        </span>
+        <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
         {meta && <span className="font-mono text-12 tracking-header text-muted">{meta}</span>}
       </div>
-      <h1 className="r-title">{title}</h1>
+      <h1 className="m-0 font-serif font-medium text-26 leading-[1.1]">{title}</h1>
       {demo && <div className="pt-1"><DemoTag /></div>}
     </header>
   );
