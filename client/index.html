@@ -8,7 +8,8 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#F3F4F1" />
+    <meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0A1620" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -23,14 +24,13 @@
     <title>Resonance</title>
     <meta name="description" content="Resonance compares your HRV and resting heart rate with your own recent nights, alongside your screen time and the stillness you choose. A self-monitoring tool, not a medical assessment." />
     <script>
-      // Apply saved theme before first paint
+      // Apply an explicit Light/Dark choice before first paint. No saved choice
+      // (or "system") leaves data-theme unset, so CSS follows the phone's setting.
       (function(){
         try {
           const saved = localStorage.getItem('resonance-theme');
-          document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
-        } catch(e) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
+          if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+        } catch(e) { /* storage blocked: follow the phone */ }
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

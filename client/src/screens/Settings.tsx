@@ -1,4 +1,5 @@
-// Settings: time zone, HRV source, practitioner mode, sign out, delete account.
+// Settings: account (email, change password, sign out), appearance, time zone,
+// HRV source, posture, practitioner mode, delete account.
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -10,6 +11,26 @@ import { errorText, useMe, useSave } from "@/lib/api";
 import { deviceTimeZone } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
 
+type ThemeChoice = "system" | "light" | "dark";
+const THEME_KEY = "resonance-theme";
+
+function readTheme(): ThemeChoice {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === "light" || v === "dark" ? v : "system";
+  } catch { return "system"; }
+}
+
+/** Same rule as the pre-paint script in index.html: only Light/Dark set data-theme. */
+function applyTheme(choice: ThemeChoice) {
+  try {
+    if (choice === "system") localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, choice);
+  } catch { /* storage blocked: the choice lasts for this visit only */ }
+  if (choice === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", choice);
+}
+
 export default function SettingsScreen() {
   const { data: me } = useMe();
   const { logout } = useAuth();
@@ -18,7 +39,23 @@ export default function SettingsScreen() {
   const [device, setDevice] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [theme, setTheme] = useState<ThemeChoice>(readTheme);
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwBusy, setPwBusy] = useState(false);
   const tz = deviceTimeZone();
+  const pwMismatch = pw.confirm.length > 0 && pw.next !== pw.confirm;
+  const pwReady = !!pw.current && pw.next.length >= 8 && pw.next === pw.confirm && !pwBusy;
+
+  async function changePassword() {
+    setPwMsg(null); setPwBusy(true);
+    try {
+      await apiRequest("POST", "/api/auth/password", { currentPassword: pw.current, newPassword: pw.next });
+      setPw({ current: "", next: "", confirm: "" });
+      setPwMsg({ ok: true, text: "Password changed." });
+    } catch (e) { setPwMsg({ ok: false, text: errorText(e) }); }
+    finally { setPwBusy(false); }
+  }
   const input = "flex-1 min-w-0 h-12 box-border px-3.5 rounded-control border border-control bg-surface text-15";
   if (!me) return null;
   const deviceValue = device ?? me.defaultHrvDevice ?? "";
@@ -27,8 +64,43 @@ export default function SettingsScreen() {
     <SubScreen back={{ href: "/log", label: "Log" }} title="Settings" demo={me.isDemo}>
       <section className="r-card px-5 py-4 flex flex-col gap-2.5">
         <Eyebrow>ACCOUNT</Eyebrow>
-        <span className="text-14">{me.email}</span>
+        <p className="m-0 text-13 text-ink-soft">Signed in as <span className="text-14 text-ink">{me.email}</span></p>
         <button type="button" className="r-button-quiet" onClick={logout}>Sign out</button>
+      </section>
+
+      <section className="r-card px-5 py-4 flex flex-col gap-2.5" aria-labelledby="pw-heading">
+        <Eyebrow><span id="pw-heading">CHANGE PASSWORD</span></Eyebrow>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">
+          There's no reset by email yet, so keep your password somewhere safe, like a password manager.
+        </p>
+        <label className="r-label" htmlFor="pw-current">Current password</label>
+        <input id="pw-current" type="password" autoComplete="current-password" className={input}
+          value={pw.current} onChange={e => setPw({ ...pw, current: e.target.value })} />
+        <label className="r-label" htmlFor="pw-next">New password</label>
+        <input id="pw-next" type="password" autoComplete="new-password" className={input} aria-describedby="pw-hint"
+          value={pw.next} onChange={e => setPw({ ...pw, next: e.target.value })} />
+        <span id="pw-hint" className="r-hint">At least 8 characters.</span>
+        <label className="r-label" htmlFor="pw-confirm">Confirm new password</label>
+        <input id="pw-confirm" type="password" autoComplete="new-password" className={input} aria-invalid={pwMismatch}
+          value={pw.confirm} onChange={e => setPw({ ...pw, confirm: e.target.value })} />
+        {pwMismatch && <span className="r-hint text-alert">The two new passwords don't match.</span>}
+        <button type="button" className="r-button" disabled={!pwReady} onClick={changePassword}>Change password</button>
+        {pwMsg && (pwMsg.ok
+          ? <p role="status" className="m-0 text-13 text-physiology-strong">{pwMsg.text}</p>
+          : <FormError>{pwMsg.text}</FormError>)}
+      </section>
+
+      <section className="r-card px-5 py-4 flex flex-col gap-2.5">
+        <Eyebrow>APPEARANCE</Eyebrow>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">System follows your phone's light or dark setting.</p>
+        <div className="flex gap-2" role="group" aria-label="Theme">
+          {(["system", "light", "dark"] as const).map(t => (
+            <button key={t} type="button" className="r-chip flex-1" aria-pressed={theme === t}
+              onClick={() => { setTheme(t); applyTheme(t); }}>
+              {t === "system" ? "System" : t === "light" ? "Light" : "Dark"}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="r-card px-5 py-4 flex flex-col gap-2.5">

@@ -53,6 +53,8 @@ export interface IStorage {
   getUserById(id: number): Promise<User | null>;
   createUser(data: InsertUser): Promise<User>;
   updateUserSettings(id: number, patch: UserSettingsPatch): Promise<User | null>;
+  /** Replaces the bcrypt hash. Returns false if the user doesn't exist. */
+  updatePasswordHash(id: number, passwordHash: string): Promise<boolean>;
   deleteUser(id: number): Promise<void>;
 
   // Sleep (one row per wake date)

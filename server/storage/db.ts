@@ -56,6 +56,10 @@ export function createDbStorage(db: NodePgDatabase): IStorage {
       const rows = await db.update(users).set(patch).where(eq(users.id, id)).returning();
       return rows[0] ?? null;
     },
+    async updatePasswordHash(id, passwordHash) {
+      const rows = await db.update(users).set({ passwordHash }).where(eq(users.id, id)).returning({ id: users.id });
+      return rows.length > 0;
+    },
     async deleteUser(id) {
       await db.delete(users).where(eq(users.id, id));
     },

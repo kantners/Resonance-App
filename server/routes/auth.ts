@@ -44,6 +44,11 @@ const zRegister = z.object({
 
 const zLogin = z.object({ email: z.string().min(1), password: z.string().min(1) });
 
+const zChangePassword = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8, "Password must be at least 8 characters").max(200),
+}).strict();
+
 const zSettings = z.object({
   firstName: z.string().trim().max(80).nullable().optional(),
   timeZone: zTimeZone.optional(),
@@ -106,6 +111,25 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
     const user = await storage.updateUserSettings(userId(req), patch);
     if (!user) throw new HttpError(401, "Authentication required");
     res.json(await me(user));
+  });
+
+  // Change password: requires the current password, shares the login/register
+  // rate limit (so it can't be used to guess the current password), and
+  // rotates the session id afterwards.
+  app.post("/api/auth/password", requireAuth, authRateLimit, async (req, res) => {
+    const { currentPassword, newPassword } = zChangePassword.parse(req.body);
+    const id = userId(req);
+    const user = await storage.getUserById(id);
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw badRequest("Current password is incorrect");
+    }
+    if (currentPassword === newPassword) throw badRequest("The new password must be different from the current one");
+    await storage.updatePasswordHash(id, await bcrypt.hash(newPassword, 10));
+    req.session.regenerate(err => {
+      if (err) { res.status(500).json({ error: "Password changed; please sign in again" }); return; }
+      req.session.userId = id;
+      res.json({ ok: true });
+    });
   });
 
   // Deletes the account and all personal data (cascade). Study enrollments

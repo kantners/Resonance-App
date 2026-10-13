@@ -664,3 +664,55 @@ describe("registration lock (REGISTRATION_OPEN / REGISTRATION_ALLOWLIST)", () =>
     });
   });
 });
+
+// ─── Change password (Settings → Account) ───────────────────────────────────
+describe("POST /api/auth/password", () => {
+  const OLD = "correct-horse-battery";
+  const NEW = "a-brand-new-passphrase";
+
+  async function signedIn(email: string) {
+    const hh = await startHarness();
+    const c = new Client(hh.base);
+    await c.register(email);
+    return { hh, c };
+  }
+
+  it("rejects a wrong current password and leaves the old one working", async () => {
+    const { hh, c } = await signedIn("pw-wrong@example.com");
+    try {
+      const r = await c.post("/api/auth/password", { currentPassword: "not-it", newPassword: NEW });
+      expect(r.status).toBe(400);
+      expect(r.body.error).toBe("Current password is incorrect");
+      await c.post("/api/auth/logout");
+      expect((await c.post("/api/auth/login", { email: "pw-wrong@example.com", password: OLD })).status).toBe(200);
+    } finally { await hh.close(); }
+  });
+
+  it("rejects a new password that is too short or unchanged", async () => {
+    const { hh, c } = await signedIn("pw-rules@example.com");
+    try {
+      expect((await c.post("/api/auth/password", { currentPassword: OLD, newPassword: "short" })).status).toBe(400);
+      expect((await c.post("/api/auth/password", { currentPassword: OLD, newPassword: OLD })).status).toBe(400);
+    } finally { await hh.close(); }
+  });
+
+  it("changes the password: the session stays signed in, the old password stops working, the new one works", async () => {
+    const { hh, c } = await signedIn("pw-ok@example.com");
+    try {
+      expect((await c.post("/api/auth/password", { currentPassword: OLD, newPassword: NEW })).status).toBe(200);
+      expect((await c.get("/api/me")).status).toBe(200);
+      await c.post("/api/auth/logout");
+      expect((await c.post("/api/auth/login", { email: "pw-ok@example.com", password: OLD })).status).toBe(401);
+      expect((await c.post("/api/auth/login", { email: "pw-ok@example.com", password: NEW })).status).toBe(200);
+    } finally { await hh.close(); }
+  });
+
+  it("needs a session (401) and is not a public route", async () => {
+    const hh = await startHarness();
+    try {
+      const r = await new Client(hh.base).post("/api/auth/password", { currentPassword: OLD, newPassword: NEW });
+      expect(r.status).toBe(401);
+      expect(PUBLIC_API_ROUTES).not.toContain("POST /api/auth/password");
+    } finally { await hh.close(); }
+  });
+});

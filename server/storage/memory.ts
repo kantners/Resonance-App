@@ -57,6 +57,12 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       Object.assign(u, patch);
       return u;
     },
+    async updatePasswordHash(uid, passwordHash) {
+      const u = usersT.find(x => x.id === uid);
+      if (!u) return false;
+      u.passwordHash = passwordHash;
+      return true;
+    },
     async deleteUser(uid) {
       const i = usersT.findIndex(u => u.id === uid);
       if (i >= 0) usersT.splice(i, 1);
