@@ -107,6 +107,32 @@ export default function SettingsScreen() {
             onClick={() => save.mutate({ defaultHrvDevice: deviceValue.trim() })}>Save</button>
         </div>
         <FormError>{save.error ? errorText(save.error) : null}</FormError>
+        <details className="group rounded-control border border-line px-3.5 py-2.5">
+          <summary className="cursor-pointer list-none flex items-center justify-between text-14 font-medium text-ink">
+            Using a Garmin?
+            <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <ol className="mt-2.5 mb-0 pl-5 flex flex-col gap-1.5 text-13 leading-[1.5] text-ink-soft">
+            <li>
+              There's no pairing. Garmin watches can't stream HRV to other apps, so you copy one number each morning.
+            </li>
+            <li>
+              Set the source to{' '}
+              <button type="button" className="underline text-physiology"
+                onClick={() => setDevice('Garmin Fenix 7X · overnight HRV')}>Garmin Fenix 7X · overnight HRV</button>
+              {' '}and save.
+            </li>
+            <li>
+              Each morning, open Garmin Connect → HRV Status. Enter last night's average (ms) and your resting heart rate
+              on the Sleep screen.
+            </li>
+            <li>
+              Use one source only. Don't mix Garmin's overnight average with a morning spot reading; they aren't
+              comparable.
+            </li>
+            <li className="text-muted">Automatic import (Health Connect or a chest strap) comes later.</li>
+          </ol>
+        </details>
       </section>
 
       <section className="r-card px-5 py-4 flex flex-col gap-2.5">
