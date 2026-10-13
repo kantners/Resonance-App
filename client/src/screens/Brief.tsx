@@ -58,7 +58,7 @@ function BuildingBaseline({ brief }: { brief: BriefResponse }) {
     <>
       <section aria-label="Baseline" className="r-card px-5 py-[18px] flex flex-col gap-3">
         <Eyebrow>YOUR BASELINE</Eyebrow>
-        <p className="m-0 font-serif text-26 font-medium leading-[1.2]">
+        <p className="m-0 font-serif text-26 font-semibold leading-[1.2]">
           {baselineDone
             ? `Baseline ready. ${week.nights} of 7 nights this week; the label needs 5.`
             : "Resonance is learning your baseline."}

@@ -17,8 +17,8 @@ function NavItem({ href, label, icon, active, onClick }: { href: string; label: 
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "r-nav-item flex flex-col items-center justify-center gap-px min-h-[44px] no-underline text-12 leading-none",
-        active ? "text-ink font-semibold hover:text-ink" : "text-muted font-medium hover:text-ink",
+        "r-nav-item flex flex-col items-center justify-center gap-[3px] min-h-[48px] no-underline text-11 leading-none tracking-[0.01em]",
+        active ? "text-physiology font-semibold hover:text-physiology" : "text-muted font-medium hover:text-ink",
       )}
     >
       {icon}
@@ -38,11 +38,11 @@ function BottomNav() {
     if (taps.current.length >= 3) { taps.current = []; toggleTheme(); }
   };
   const tabs = [
-    { href: "/", label: "Brief", icon: <BriefIcon />, match: (l: string) => l === "/" || l === "/how" },
-    { href: "/log", label: "Log", icon: <LogIcon />, match: (l: string) => l.startsWith("/log") },
-    { href: "/trends", label: "Trends", icon: <TrendsIcon />, match: (l: string) => l.startsWith("/trends") },
+    { href: "/", label: "Brief", icon: <BriefIcon size={24} />, match: (l: string) => l === "/" || l === "/how" },
+    { href: "/log", label: "Log", icon: <LogIcon size={24} />, match: (l: string) => l.startsWith("/log") },
+    { href: "/trends", label: "Trends", icon: <TrendsIcon size={24} />, match: (l: string) => l.startsWith("/trends") },
     ...(me?.isPractitioner
-      ? [{ href: "/study", label: "Study", icon: <StudyIcon />, match: (l: string) => l.startsWith("/study") }]
+      ? [{ href: "/study", label: "Study", icon: <StudyIcon size={24} />, match: (l: string) => l.startsWith("/study") }]
       : []),
   ];
   return (
@@ -50,7 +50,7 @@ function BottomNav() {
       aria-label="Primary"
       // 44px tap targets (the floor); bottom padding only as tall as the phone's
       // home-indicator area (iPhone), otherwise 4px.
-      className="sticky bottom-0 grid border-t border-line bg-surface px-2 pt-1 pb-[max(4px,env(safe-area-inset-bottom))]"
+      className="sticky bottom-0 z-10 grid border-t border-line/70 bg-surface/80 backdrop-blur-xl backdrop-saturate-150 px-2 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]"
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
       {tabs.map(t => <NavItem key={t.href} href={t.href} label={t.label} icon={t.icon} active={t.match(location)}
@@ -79,7 +79,7 @@ export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?
       <div className="flex items-center gap-3 mb-4">
         <img src="/brand-shield.png" alt="" width={34} height={44} className="w-[34px] h-auto" />
         <div className="inline-flex flex-col items-stretch gap-1.5">
-          <span className="font-serif font-semibold text-[40px] leading-none text-ink">Resonance</span>
+          <span className="font-serif font-bold text-[36px] leading-none text-ink">Resonance</span>
           <span className="flex items-center gap-1.5" aria-label="by Blue Ember Wellness">
             <span aria-hidden="true" className="flex-1 min-w-[6px] h-px bg-[rgb(var(--brand-rule))]" />
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase whitespace-nowrap text-[rgb(var(--brand-text))]">By Blue Ember Wellness</span>
@@ -91,7 +91,7 @@ export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?
         <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
         {meta && <span className="font-mono text-12 tracking-header text-muted">{meta}</span>}
       </div>
-      <h1 className="m-0 font-serif font-medium text-26 leading-[1.1]">{title}</h1>
+      <h1 className="m-0 font-serif font-semibold text-26 leading-[1.1]">{title}</h1>
       {demo && <div className="pt-1"><DemoTag /></div>}
     </header>
   );
@@ -109,7 +109,7 @@ export function SubScreen({
             <BackIcon />{back.label}
           </Link>
           <div className="flex justify-between items-baseline gap-3">
-            <h1 className="m-0 font-serif font-medium text-30 leading-[1.1]">{title}</h1>
+            <h1 className="m-0 font-serif font-semibold text-30 leading-[1.1]">{title}</h1>
             {typeof meta === "string"
               ? <span className="font-mono text-12 tracking-header text-muted text-right">{meta}</span>
               : meta}

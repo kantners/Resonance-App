@@ -83,7 +83,7 @@ export default function StillnessScreen() {
         <div role="group" aria-label="Type" className="grid grid-cols-2 gap-2">
           {TYPES.map(t => (
             <button key={t.id} type="button" aria-pressed={type === t.id} onClick={() => setType(t.id)}
-              className="r-chip flex flex-col items-start justify-start !rounded-control gap-0.5 min-h-[64px] px-3.5 py-3 text-left"
+              className="r-chip flex flex-col items-start justify-start gap-0.5 min-h-[64px] px-3.5 py-3 text-left"
               style={bad.type ? { borderColor: "rgb(var(--exposure))", borderWidth: 2 } : undefined}>
               <span className="text-14 font-medium">{t.title}</span>
               <span className="text-12 text-ink-soft">{t.sub}</span>

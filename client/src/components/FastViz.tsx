@@ -62,7 +62,7 @@ export function FastRuler({ startedAt, goalHours, now, sleeps }: { startedAt: st
   );
 }
 
-const hm = (h: number) => `${Math.floor(h)}h ${String(Math.round((h % 1) * 60)).padStart(2, "0")}m`;
+const hm = (h: number) => { const t = Math.round(h * 60); return `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, "0")}m`; };
 
 export function OwnFasts({ pastHours, currentHours, goalHours }: { pastHours: number[]; currentHours: number; goalHours: number }) {
   if (pastHours.length < 3) return null;

@@ -14,7 +14,7 @@ const LABEL_TEXT: Record<Exclude<WeekLabel, "building_baseline">, string> = {
 export function WeekLabelHeading({ label, nights }: { label: Exclude<WeekLabel, "building_baseline">; nights: number }) {
   return (
     <div className="flex items-baseline gap-2 flex-wrap">
-      <span className="font-serif text-44 font-medium leading-none">{LABEL_TEXT[label]}</span>
+      <span className="font-serif text-44 font-semibold leading-none">{LABEL_TEXT[label]}</span>
       <span className="font-mono text-13 text-muted">· {nights} of 7 nights</span>
     </div>
   );

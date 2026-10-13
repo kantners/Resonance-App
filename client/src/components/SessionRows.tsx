@@ -22,10 +22,8 @@ export function SessionRows({ heading, rows, totalLabel, url, listKey, minutesFi
     mutationFn: (a: { method: string; path: string; body?: unknown }) => apiRequest(a.method, a.path, a.body),
     onSuccess: async () => {
       setError(null);
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: [listKey] }),
-        qc.invalidateQueries({ predicate: q => String(q.queryKey[0]).startsWith("/api/brief") }),
-      ]);
+      void listKey;
+      await qc.invalidateQueries();
       signalSaved();
     },
     onError: e => { setError(errorText(e)); signalError(); },

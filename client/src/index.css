@@ -58,11 +58,14 @@
   --alert: 122 85 24;             /* errors and low-confidence notes (kept in the exposure family) */
   --shadow: 18 40 58;             /* used at 12% for overlays */
 
-  /* Type: Blue Ember website faces for words; Plex Mono kept for every number
-     (instrument readout, tabular figures). Cormorant is a display face: titles only. */
-  --font-sans: 'Work Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  /* Type: one Apple-style family everywhere. iPhone/iPad/Mac get San Francisco
+     (the -apple-system stack); Android and Windows get Inter, its closest open
+     match. The mono and serif names stay so existing classes keep working, but
+     they resolve to the same family: numbers use tabular figures (see .font-mono
+     below), titles use tighter tracking and a heavier weight (see .font-serif). */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: var(--font-sans);
+  --font-serif: var(--font-sans);
 
   /* shadcn/ui primitives (toast etc.) reuse the tokens above */
   --radius: 0.625rem;
@@ -113,6 +116,9 @@
   a { @apply text-physiology; }
   a:hover { @apply text-physiology-strong; }
   button, input, select, textarea { font-family: inherit; }
+  /* San Francisco details: tabular figures for readouts, tight tracking for titles. */
+  .font-mono { font-variant-numeric: tabular-nums; }
+  .font-serif { letter-spacing: -0.022em; }
   :focus-visible { outline: 2px solid rgb(var(--physiology)); outline-offset: 2px; }
 }
 
@@ -125,14 +131,14 @@
   .r-eyebrow { @apply font-mono text-11 tracking-eyebrow text-muted uppercase; }
 
   /* Serif titles */
-  .r-title { @apply font-serif font-medium text-34 leading-[1.1] m-0; }
+  .r-title { @apply font-serif font-semibold text-34 leading-[1.1] m-0; }
 
   /* Text link with a 44px tap target */
   .r-link { @apply inline-flex items-center min-h-[44px] text-14 font-medium no-underline; }
 
   /* Pills: tags and single-choice options */
   .r-chip {
-    @apply min-h-[44px] px-3 rounded-pill border border-control bg-surface text-13 text-ink cursor-pointer;
+    @apply min-h-[44px] px-3 rounded-control border border-control bg-surface text-13 text-ink cursor-pointer;
   }
   .r-chip[aria-pressed="true"], .r-chip[aria-checked="true"] { @apply bg-ink text-surface border-ink; }
 
@@ -178,12 +184,9 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   box-shadow: 0 0 0 3px rgb(var(--physiology) / 0.2);
 }
 
-/* Active tab: a short teal bar above the label. */
-.r-nav-item { position: relative; }
-.r-nav-item[aria-current="page"]::before {
-  content: ""; position: absolute; top: -4px; left: 50%; width: 22px; height: 2px;
-  margin-left: -11px; border-radius: 2px; background: rgb(var(--physiology));
-}
+/* Active tab: teal tint and a slightly heavier icon stroke, as on an iOS tab bar. */
+.r-nav-item svg { stroke-width: 1.6; }
+.r-nav-item[aria-current="page"] svg { stroke-width: 2.1; }
 
 @media (prefers-reduced-motion: no-preference) {
   .r-button, .r-button-quiet, .r-chip {
@@ -208,7 +211,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 
   .r-nav-item svg { transition: transform .15s cubic-bezier(.3, .7, .4, 1.5); }
   .r-nav-item:active svg { transform: scale(.85); }
-  .r-nav-item[aria-current="page"]::before { animation: r-bar .28s cubic-bezier(.2, .7, .2, 1) both; }
 }
 
 @keyframes r-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

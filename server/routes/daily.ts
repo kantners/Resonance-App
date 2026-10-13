@@ -151,7 +151,7 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
       return { date: d, hrv: n?.hrv ?? null, rhr: n?.rhr ?? null, state: n ? nightStateOn(nights, d, flag) : null };
     });
 
-    const fastHistory = await storage.getFastingHistory(uid, 30);
+    const fastHistory = await storage.getFastingHistory(uid, 200);
     const evening = eveningAnnotation(lastSleep?.sleepOnset ?? null, fastHistory, deps.now());
 
     const body: BriefResponse = {
@@ -241,7 +241,7 @@ export function registerDailyRoutes(app: Express, deps: RouteDeps) {
   app.get("/api/evening/:date", requireAuth, async (req, res) => {
     const uid = userId(req);
     const sleep = await storage.getSleep(uid, dateParam(req));
-    res.json(eveningAnnotation(sleep?.sleepOnset ?? null, await storage.getFastingHistory(uid, 30), deps.now()));
+    res.json(eveningAnnotation(sleep?.sleepOnset ?? null, await storage.getFastingHistory(uid, 200), deps.now()));
   });
 
   // ── Morning reading (manual in Layer 0; source required) ──────────────────

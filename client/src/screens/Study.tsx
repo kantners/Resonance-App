@@ -229,7 +229,7 @@ function LockedStudy({ protocol: p }: { protocol: ProtocolDto }) {
           <Eyebrow>PROTOCOL · VERSION {p.version}</Eyebrow>
           <span className="flex items-center gap-1.5 text-12 font-semibold"><LockIcon />Locked {fmtMonthDay(p.lockedAt!.slice(0, 10))}</span>
         </div>
-        <p className="m-0 font-serif text-20 font-medium leading-[1.3]">{p.question}</p>
+        <p className="m-0 font-serif text-20 font-semibold leading-[1.3]">{p.question}</p>
         <ArmList arms={p.conditions} />
         <dl className="m-0 grid grid-cols-[88px_1fr] gap-x-3 gap-y-1.5 text-13 leading-[1.4]">
           <dt className="text-muted">Design</dt><dd className="m-0">Each client has one session of each, in random order</dd>

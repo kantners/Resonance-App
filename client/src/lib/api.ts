@@ -17,10 +17,10 @@ export function useSave<TBody, TResult = unknown>(method: string, url: string, i
   return useMutation<TResult, Error, TBody>({
     mutationFn: body => apiRequest<TResult>(method, url, body),
     onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ predicate: q => String(q.queryKey[0]).startsWith("/api/brief") }),
-        ...invalidate.map(k => qc.invalidateQueries({ queryKey: [k] })),
-      ]);
+      // staleTime is Infinity, so anything not invalidated stays stale until reload (Sleep prefill,
+      // Brief, Trends, evening gap). Inactive queries are only marked stale; active ones refetch.
+      void invalidate;
+      await qc.invalidateQueries();
       signalSaved();
     },
     onError: () => signalError(),

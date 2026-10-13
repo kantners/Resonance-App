@@ -91,9 +91,9 @@ export default function RecoveryRuleScreen() {
           signal is strained when HRV sits below its range or resting HR above it.
         </Body>
         <div className="flex flex-col">
-          <Row left="Neither 7-night average strained" right={<span className="font-serif text-20 font-medium">Steady</span>} />
-          <Row left="Either 7-night average strained" right={<span className="font-serif text-20 font-medium">Drifting down</span>} />
-          <Row left="Drifting down within the last 7 days, back in range now" right={<span className="font-serif text-20 font-medium">Recovering</span>} last />
+          <Row left="Neither 7-night average strained" right={<span className="font-serif text-20 font-semibold">Steady</span>} />
+          <Row left="Either 7-night average strained" right={<span className="font-serif text-20 font-semibold">Drifting down</span>} />
+          <Row left="Drifting down within the last 7 days, back in range now" right={<span className="font-serif text-20 font-semibold">Recovering</span>} last />
         </div>
       </Card>
 
@@ -126,7 +126,7 @@ export default function RecoveryRuleScreen() {
               </div>
               <div className="flex justify-between items-baseline px-3 py-2.5 rounded-control bg-ground">
                 <span className="text-14">Your week · {b.week.nights} of 7 nights</span>
-                <span className="font-serif text-20 font-medium">{LABEL_TEXT[b.week.label]}</span>
+                <span className="font-serif text-20 font-semibold">{LABEL_TEXT[b.week.label]}</span>
               </div>
             </>
           )}
