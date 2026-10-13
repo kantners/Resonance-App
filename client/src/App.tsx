@@ -13,6 +13,7 @@ import LogScreen from "@/screens/Log";
 import MorningCheckScreen from "@/screens/MorningCheck";
 import SleepScreen from "@/screens/Sleep";
 import ExposureManualScreen from "@/screens/ExposureManual";
+import { ExposureScreenshotScreen, SleepScreenshotScreen } from "@/screens/ScreenshotScreens";
 import StudyScreen from "@/screens/Study";
 import SettingsScreen from "@/screens/Settings";
 import { PrivacyScreen, TermsScreen } from "@/screens/Legal";
@@ -27,10 +28,11 @@ function Screens() {
       <Route path="/log/morning" component={MorningCheckScreen} />
       <Route path="/log/sleep" component={SleepScreen} />
       <Route path="/log/exposure" component={ExposureManualScreen} />
+      <Route path="/log/exposure/screenshot" component={ExposureScreenshotScreen} />
+      <Route path="/log/sleep/screenshot" component={SleepScreenshotScreen} />
       <Route path="/study" component={StudyScreen} />
       <Route path="/settings" component={SettingsScreen} />
       {/* Scheduled after October 4 (step 9b) */}
-      <Route path="/log/exposure/screenshot">{() => <PendingSubScreen title="Screenshot import" back={{ href: "/log/exposure", label: "Manual entry" }} />}</Route>
       <Route path="/log/stillness">{() => <PendingSubScreen title="Log stillness" />}</Route>
       <Route path="/log/reading">{() => <PendingSubScreen title="Reading" />}</Route>
       <Route path="/log/fasting">{() => <PendingSubScreen title="Fasting" />}</Route>

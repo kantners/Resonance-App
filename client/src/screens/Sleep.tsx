@@ -2,7 +2,7 @@
 // "Night of Thu · Sep 24" is saved under Fri, Sep 25 (HANDOFF §0).
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { SleepLog } from "@shared/schema";
 import { DateStepper } from "@/components/DateStepper";
 import { Field, FieldLabel, FormError, num, PrimaryButton, UnitInput } from "@/components/Fields";
@@ -73,6 +73,10 @@ export default function SleepScreen() {
       meta={<DateStepper date={addDays(wakeDate, -1)} onChange={d => setWakeDate(addDays(d, 1))} max={addDays(today, -1)} prefix="NIGHT OF " />}
       demo={me?.isDemo}
     >
+      <Link href="/log/sleep/screenshot" className="r-tile flex items-center justify-between min-h-[48px] px-3.5 text-14 font-medium no-underline">
+        <span>Fill from a screenshot</span><span aria-hidden="true" className="text-muted">›</span>
+      </Link>
+
       <section aria-label="Sleep values" className="r-card p-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <FieldLabel>Time asleep</FieldLabel>

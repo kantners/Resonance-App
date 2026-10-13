@@ -1,401 +1,248 @@
+// Screenshot import: pick one or more screenshots, the server reads them with a
+// vision model, you check the numbers, then they are saved. Nothing is saved
+// until you confirm, and any value the model was unsure of is flagged.
 import { useRef, useState } from "react";
-import { Camera, CheckCircle, XCircle, Loader2, Upload, RefreshCw, Plus, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { FieldLabel, FormError, PrimaryButton, UnitInput, num } from "@/components/Fields";
+import { errorText, useMe, useSave } from "@/lib/api";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+export type ShotKind = "sleep" | "screen_time";
 
-// The Screen Time / Digital Wellbeing type is added with the exposure routes.
-type DataType = "sleep";
+type Parsed = { data: Record<string, any>; low: string[]; platform?: string | null };
+type Def = { key: string; label: string; unit: string; mode?: "numeric" | "decimal" };
 
-// Only the fields Resonance uses: the Brief's inputs plus sleep context.
-interface SleepData {
-  date: string | null;
-  hours: number | null;
-  sleep_score: number | null;
-  hrv: number | null;
-  resting_hr: number | null;
-}
-
-type Phase = "idle" | "scanning" | "review" | "saving" | "done" | "error";
-
-// ─── Field config ─────────────────────────────────────────────────────────────
-
-const SLEEP_FIELDS: { key: keyof SleepData; label: string; type: "text" | "number" }[] = [
-  { key: "date", label: "Wake date", type: "text" },
-  { key: "hours", label: "Time asleep (h)", type: "number" },
-  { key: "sleep_score", label: "Sleep score", type: "number" },
-  { key: "hrv", label: "HRV (ms)", type: "number" },
-  { key: "resting_hr", label: "Resting HR", type: "number" },
+const SLEEP: Def[] = [
+  { key: "asleep_h", label: "Hours asleep", unit: "h" },
+  { key: "asleep_m", label: "Minutes asleep", unit: "m" },
+  { key: "hrv", label: "HRV", unit: "ms", mode: "decimal" },
+  { key: "resting_hr", label: "Resting HR", unit: "bpm" },
+];
+const SCREEN: Def[] = [
+  { key: "total_h", label: "Hours", unit: "h" },
+  { key: "total_m", label: "Minutes", unit: "m" },
+  { key: "pickups", label: "Pickups", unit: "" },
+  { key: "social_min", label: "Social (min)", unit: "" },
+  { key: "entertainment_min", label: "Entertainment (min)", unit: "" },
+  { key: "productivity_min", label: "Productivity (min)", unit: "" },
 ];
 
-// Merge multiple parsed results — non-null values win, first non-null takes priority
-function mergeFields(results: { type: string; data: Record<string, any> }[]): { type: DataType; data: Record<string, any> } {
-  const type = results[0]?.type as DataType ?? "sleep";
-  const merged: Record<string, any> = {};
-  for (const result of results) {
-    for (const [k, v] of Object.entries(result.data ?? {})) {
-      if (merged[k] == null && v != null) merged[k] = v;
-    }
+/** The server returns durations as total minutes / decimal hours; the form shows h and m. */
+function toForm(kind: ShotKind, d: Record<string, any>): Record<string, string> {
+  const o: Record<string, string> = {};
+  const s = (v: unknown) => (v == null ? "" : String(v));
+  if (kind === "sleep") {
+    if (d.hours != null) { const t = Math.round(d.hours * 60); o.asleep_h = String(Math.floor(t / 60)); o.asleep_m = String(t % 60); }
+    o.hrv = s(d.hrv); o.resting_hr = s(d.resting_hr);
+  } else {
+    if (d.total_min != null) { const t = Math.round(d.total_min); o.total_h = String(Math.floor(t / 60)); o.total_m = String(t % 60); }
+    for (const k of ["pickups", "social_min", "entertainment_min", "productivity_min"]) o[k] = s(d[k]);
   }
-  return { type, data: merged };
+  return o;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+/** Which form fields a server-side low-confidence key affects. */
+const LOW_TO_FORM: Record<string, string[]> = {
+  hours: ["asleep_h", "asleep_m"], hrv: ["hrv"], resting_hr: ["resting_hr"],
+  total_min: ["total_h", "total_m"], pickups: ["pickups"], social_min: ["social_min"],
+  entertainment_min: ["entertainment_min"], productivity_min: ["productivity_min"],
+};
 
-export default function ScreenshotImport() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const addMoreRef = useRef<HTMLInputElement>(null);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [dataType, setDataType] = useState<DataType | null>(null);
-  const [fields, setFields] = useState<Record<string, any>>({});
-  const [errorMsg, setErrorMsg] = useState<string>("");
-  const [savedAction, setSavedAction] = useState<string>("");
-  const [scanCount, setScanCount] = useState(0);
-  const [scanTotal, setScanTotal] = useState(0);
+const intOrNull = (v: string, max: number) => {
+  const n = num(v);
+  return n == null || Number.isNaN(n) || n < 0 || n > max ? null : Math.round(n);
+};
 
-  const reset = () => {
-    setPhase("idle");
-    setPreviews([]);
-    setDataType(null);
-    setFields({});
-    setErrorMsg("");
-    setSavedAction("");
-    setScanCount(0);
-    setScanTotal(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    if (addMoreRef.current) addMoreRef.current.value = "";
-  };
-
-  const parseFile = async (file: File): Promise<{ type: string; data: Record<string, any> }> => {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("kind", "sleep");
-
-    // 60-second timeout — OpenAI Vision can be slow
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60_000);
-
-    let res: Response;
-    try {
-      res = await fetch("/api/parse-screenshot", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        signal: controller.signal,
-      });
-    } catch (e: any) {
-      clearTimeout(timeoutId);
-      if (e?.name === "AbortError") throw new Error("Screenshot scan timed out. Try again.");
-      throw new Error("Network error — check connection and try again.");
-    }
-    clearTimeout(timeoutId);
-
-    // Handle non-JSON error responses (HTML 500 pages, Railway cold-start errors)
+async function parseOne(file: File, kind: ShotKind): Promise<Parsed & { raw: Record<string, any> }> {
+  const body = new FormData();
+  body.append("image", file);
+  body.append("kind", kind);
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 60_000);
+  try {
+    const res = await fetch("/api/parse-screenshot", { method: "POST", body, credentials: "include", signal: ctl.signal });
     if (!res.ok) {
-      let errMsg = `Server error (${res.status})`;
-      try {
-        const errJson = await res.json();
-        if (errJson?.error) errMsg = errJson.error;
-      } catch {
-        try { const t = await res.text(); if (t && t.length < 200) errMsg = t; } catch {}
-      }
-      throw new Error(errMsg);
+      const t = await res.text();
+      throw new Error(`${res.status}: ${t}`);
     }
+    const j = await res.json();
+    return { data: j.data ?? {}, raw: j.data ?? {}, low: j.lowConfidenceFields ?? [], platform: j.platform ?? null };
+  } catch (e: any) {
+    if (e?.name === "AbortError") throw new Error("Reading the screenshot timed out. Try again.");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "Screenshot could not be parsed");
-    return { type: json.type, data: json.data ?? {} };
-  };
+export default function ScreenshotImport({ kind, date }: { kind: ShotKind; date: string }) {
+  const [, navigate] = useLocation();
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const input = useRef<HTMLInputElement>(null);
+  const [phase, setPhase] = useState<"idle" | "reading" | "review">("idle");
+  const [progress, setProgress] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [low, setLow] = useState<Set<string>>(new Set());
+  const [extra, setExtra] = useState<{ raw: Record<string, any>; platform: string | null }>({ raw: {}, platform: null });
+  const [device, setDevice] = useState<string | null>(null);
+  const commit = useSave<Record<string, unknown>>("POST", "/api/commit-screenshot");
+  const defs = kind === "sleep" ? SLEEP : SCREEN;
 
-  const handleFiles = async (files: File[]) => {
-    const imageFiles = files.filter(f => f.type.startsWith("image/"));
-    if (!imageFiles.length) return;
-
-    // Load all previews first, then transition to scanning atomically
-    const newPreviews: string[] = [];
-    for (const file of imageFiles) {
-      await new Promise<void>(resolve => {
-        const reader = new FileReader();
-        reader.onload = (e) => { newPreviews.push(e.target?.result as string); resolve(); };
-        reader.onerror = () => resolve(); // skip unreadable files gracefully
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // Set previews and phase together to avoid flash
-    setPreviews(prev => [...prev, ...newPreviews]);
-    setPhase("scanning");
-    setScanTotal(imageFiles.length);
-    setScanCount(0);
-
-    try {
-      const results: { type: string; data: Record<string, any> }[] = [];
-      for (const file of imageFiles) {
-        const result = await parseFile(file);
-        results.push(result);
-        setScanCount(prev => prev + 1);
-      }
-
-      const { type, data } = mergeFields(results);
-
-      setFields(prev => {
-        const merged: Record<string, any> = { ...data };
-        for (const [k, v] of Object.entries(prev)) {
-          if (merged[k] == null && v != null) merged[k] = v;
-        }
-        return merged;
-      });
-      setDataType(type);
-      setPhase("review");
-    } catch (e: any) {
-      setErrorMsg(e.message || "Unknown error");
-      setPhase("error");
-    }
-  };
-
-  const handleAddMore = async (files: File[]) => {
+  async function onFiles(list: FileList | null) {
+    const files = Array.from(list ?? []).filter(f => f.type.startsWith("image/")).slice(0, 4);
     if (!files.length) return;
-    const imageFiles = files.filter(f => f.type.startsWith("image/"));
-    if (!imageFiles.length) return;
-
-    const newPreviews: string[] = [];
-    for (const file of imageFiles) {
-      await new Promise<void>(resolve => {
-        const reader = new FileReader();
-        reader.onload = (e) => { newPreviews.push(e.target?.result as string); resolve(); };
-        reader.readAsDataURL(file);
-      });
-    }
-    setPreviews(prev => [...prev, ...newPreviews]);
-
-    setPhase("scanning");
-    setScanTotal(prev => prev + imageFiles.length);
-
+    setError(null); setPhase("reading");
+    // Merge: the first screenshot to supply a value wins; keep prior review work.
+    const nextForm = { ...form }, nextLow = new Set(low), raw = { ...extra.raw };
+    let platform = extra.platform;
     try {
-      const results: { type: string; data: Record<string, any> }[] = [];
-      for (const file of imageFiles) {
-        const result = await parseFile(file);
-        results.push(result);
-        setScanCount(prev => prev + 1);
+      for (let i = 0; i < files.length; i++) {
+        setProgress(files.length > 1 ? ` (${i + 1} of ${files.length})` : "");
+        const p = await parseOne(files[i], kind);
+        const got = toForm(kind, p.data);
+        for (const [k, v] of Object.entries(got)) if (v !== "" && !nextForm[k]) nextForm[k] = v;
+        for (const lk of p.low) for (const fk of LOW_TO_FORM[lk] ?? []) if (got[fk]) nextLow.add(fk);
+        for (const k of ["top_apps", "hourly_pickups", "notifications", "other_min"]) if (raw[k] == null && p.data[k] != null) raw[k] = p.data[k];
+        platform = platform ?? p.platform ?? null;
       }
-
-      // Merge new results into existing fields — existing non-null values win
-      setFields(prev => {
-        const merged: Record<string, any> = { ...prev };
-        for (const result of results) {
-          for (const [k, v] of Object.entries(result.data ?? {})) {
-            if (merged[k] == null && v != null) merged[k] = v;
-          }
-        }
-        return merged;
-      });
-      setPhase("review");
-    } catch (e: any) {
-      // Don't wipe the existing review — just show a toast-style warning
-      // and return to review phase so the user can still save what was
-      // already extracted from prior screenshots.
-      setErrorMsg(e.message || "Could not read additional screenshot");
-      setPhase("review"); // preserve existing fields
+      setForm(nextForm); setLow(nextLow); setExtra({ raw, platform }); setPhase("review");
+      if (!defs.some(d => nextForm[d.key])) setError("I couldn't find any numbers in that image. Try a clearer screenshot, or enter them by hand.");
+    } catch (e) {
+      setError(errorText(e)); setPhase(Object.keys(form).length ? "review" : "idle");
+    } finally {
+      if (input.current) input.current.value = "";
     }
-  };
+  }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length) handleFiles(files);
-  };
+  function edit(key: string, v: string) {
+    setForm(f => ({ ...f, [key]: v }));
+    setLow(s => { const n = new Set(s); n.delete(key); return n; });
+  }
 
-  const handleInputChange = (key: string, value: string, type: "text" | "number") => {
-    setFields((prev) => ({
-      ...prev,
-      [key]: type === "number" ? (value === "" ? null : parseFloat(value)) : value || null,
-    }));
-  };
-
-  const handleCommit = async () => {
-    setPhase("saving");
+  async function save() {
+    setError(null);
+    let data: Record<string, unknown>;
+    if (kind === "sleep") {
+      const h = intOrNull(form.asleep_h ?? "", 24), m = intOrNull(form.asleep_m ?? "", 59);
+      const hv = num(form.hrv ?? ""), rh = intOrNull(form.resting_hr ?? "", 200);
+      if (hv != null && (Number.isNaN(hv) || hv <= 0 || hv > 400)) return setError("HRV should be between 1 and 400 ms.");
+      const dev = (device ?? me?.defaultHrvDevice ?? "").trim();
+      if (hv != null && !dev) return setError("Add the HRV source (device and app) first, or set it in Settings.");
+      data = {
+        date,
+        hours: h != null || m != null ? (h ?? 0) + (m ?? 0) / 60 : null,
+        hrv: hv, resting_hr: rh != null && rh >= 20 ? rh : null,
+        ...(hv != null ? { hrv_device: dev } : {}),
+      };
+    } else {
+      const h = intOrNull(form.total_h ?? "", 24), m = intOrNull(form.total_m ?? "", 59);
+      if (h == null && m == null) return setError("Total screen time is needed.");
+      const apps = Array.isArray(extra.raw.top_apps)
+        ? extra.raw.top_apps.filter((a: any) => a?.name && Number.isFinite(a?.minutes)).slice(0, 20)
+            .map((a: any) => ({ name: String(a.name).trim().slice(0, 80), minutes: Math.max(0, Math.min(1440, Math.round(a.minutes))) }))
+        : null;
+      const hp = extra.raw.hourly_pickups;
+      const okHp = Array.isArray(hp) && hp.length === 24 && hp.every((n: any) => Number.isInteger(n) && n >= 0 && n <= 1000);
+      const lowKeys = Object.entries(LOW_TO_FORM).filter(([, fs]) => fs.some(f => low.has(f))).map(([k]) => k);
+      data = {
+        date, totalMin: (h ?? 0) * 60 + (m ?? 0),
+        pickups: intOrNull(form.pickups ?? "", 5000),
+        socialMin: intOrNull(form.social_min ?? "", 1440),
+        entertainmentMin: intOrNull(form.entertainment_min ?? "", 1440),
+        productivityMin: intOrNull(form.productivity_min ?? "", 1440),
+        notifications: typeof extra.raw.notifications === "number" ? intOrNull(String(extra.raw.notifications), 20000) : null,
+        otherMin: typeof extra.raw.other_min === "number" ? intOrNull(String(extra.raw.other_min), 1440) : null,
+        topApps: apps?.length ? apps : null,
+        hourlyPickups: okHp ? hp : null,
+        platform: extra.platform === "ios" || extra.platform === "android" ? extra.platform : null,
+        lowConfidenceFields: lowKeys.length ? lowKeys : null,
+      };
+    }
     try {
-      const res = await fetch("/api/commit-screenshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: dataType, data: fields }),
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Save failed");
-      setSavedAction(json.action);
-      setPhase("done");
-    } catch (e: any) {
-      setErrorMsg(e.message);
-      setPhase("error");
-    }
-  };
+      await commit.mutateAsync({ type: kind, data });
+      await Promise.all(["/api/exposure", "/api/sleep", "/api/me"].map(p =>
+        qc.invalidateQueries({ predicate: q => String(q.queryKey[0]).startsWith(p) })));
+      navigate("/");
+    } catch (e) { setError(errorText(e)); }
+  }
 
-  const activeFields = SLEEP_FIELDS;
-  const filledCount = activeFields.filter(f => fields[f.key] != null).length;
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  const what = kind === "sleep" ? "a sleep summary from your watch or ring app" : "a Screen Time or Digital Wellbeing screenshot for one day";
+  const filled = defs.filter(d => form[d.key]).length;
 
   return (
-    <div className="screenshot-import-section">
+    <div className="flex flex-col gap-4">
+      <input ref={input} type="file" accept="image/*" multiple className="hidden" aria-label="Choose screenshots"
+        onChange={e => onFiles(e.target.files)} />
 
-      {/* Drop zone — idle */}
       {phase === "idle" && (
-        <div
-          className="screenshot-dropzone"
-          onClick={() => fileInputRef.current?.click()}
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-        >
-          <Camera size={28} className="screenshot-dropzone-icon" />
-          <p className="screenshot-dropzone-label">Upload screenshots</p>
-          <p className="screenshot-dropzone-sub">A sleep summary from your watch or ring app.</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
-          />
+        <>
+          <button type="button" onClick={() => input.current?.click()}
+            className="r-card flex flex-col items-center gap-1.5 px-5 py-8 border-dashed border-control cursor-pointer text-center">
+            <span className="text-16 font-semibold text-ink">Choose a screenshot</span>
+            <span className="text-13 leading-[1.45] text-ink-soft">{what}. You can pick up to four.</span>
+          </button>
+          <p className="m-0 text-12 leading-[1.45] text-ink-soft">
+            The image is sent to OpenAI to read the numbers, then deleted. You check the values before anything is saved.
+          </p>
+        </>
+      )}
+
+      {phase === "reading" && (
+        <div role="status" className="r-card px-5 py-6 flex items-center gap-3">
+          <span aria-hidden="true" className="inline-block w-4 h-4 rounded-full border-2 border-control border-t-physiology animate-spin" />
+          <span className="text-15">Reading{progress}…</span>
         </div>
       )}
 
-      {/* Scanning */}
-      {phase === "scanning" && (
-        <div className="screenshot-status-card">
-          {previews.length > 0 && (
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-              {previews.map((p, i) => (
-                <img key={i} src={p} alt={`Screenshot ${i + 1}`} className="screenshot-thumb" />
+      {phase === "review" && (
+        <>
+          <section aria-label="Values read" className="r-card p-4 flex flex-col gap-3.5">
+            <div className="flex justify-between items-baseline gap-3">
+              <h2 className="m-0 text-15 font-semibold">Check what I read</h2>
+              <span className="font-mono text-12 text-muted">{filled} of {defs.length} found</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-2.5 gap-y-3.5">
+              {defs.map(d => (
+                <div key={d.key} className="flex flex-col gap-1.5 min-w-0">
+                  <FieldLabel htmlFor={`ss-${d.key}`}>
+                    {d.label}
+                    {low.has(d.key) && <span className="ml-1.5 font-semibold text-exposure-strong">· check</span>}
+                  </FieldLabel>
+                  <UnitInput id={`ss-${d.key}`} value={form[d.key] ?? ""} onChange={v => edit(d.key, v)} unit={d.unit}
+                    inputMode={d.mode ?? "numeric"} placeholder="—" />
+                </div>
               ))}
             </div>
-          )}
-          <div className="screenshot-status-row">
-            <Loader2 size={18} className="screenshot-spinner" />
-            <span className="screenshot-status-text">
-              Reading screenshot{scanTotal > 1 ? `s (${scanCount}/${scanTotal})` : ""}...
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Review */}
-      {phase === "review" && (
-        <div className="screenshot-review-card">
-          <div className="screenshot-review-header">
-            <div className="screenshot-review-header-left">
-              {previews.length > 0 && (
-                <div style={{ display: "flex", gap: "0.375rem" }}>
-                  {previews.map((p, i) => (
-                    <img key={i} src={p} alt={`Screenshot ${i + 1}`} className="screenshot-thumb-sm" />
-                  ))}
-                </div>
-              )}
-              <div>
-                <p className="screenshot-review-type">
-                  Sleep summary detected
-                  <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "var(--color-text-faint)", fontWeight: 500 }}>
-                    {filledCount}/{activeFields.length} fields
-                  </span>
-                </p>
-                <p className="screenshot-review-hint">
-            {errorMsg ? <span className="text-alert">{errorMsg}</span> : "Edit any field, then confirm to save."}
-          </p>
+            {kind === "sleep" && num(form.hrv ?? "") != null && (
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel htmlFor="ss-device">HRV source: device and app</FieldLabel>
+                <UnitInput id="ss-device" value={device ?? me?.defaultHrvDevice ?? ""} onChange={setDevice} inputMode="text"
+                  placeholder="e.g. Garmin Fenix 7X · overnight HRV" />
               </div>
-            </div>
-            <button className="screenshot-retry-btn" onClick={reset} title="Start over">
-              <X size={14} />
+            )}
+            {kind === "screen_time" && (extra.raw.top_apps?.length || extra.raw.hourly_pickups) && (
+              <p className="m-0 text-12 leading-[1.45] text-ink-soft">
+                Also read: {[extra.raw.top_apps?.length ? `top ${extra.raw.top_apps.length} apps` : null, extra.raw.hourly_pickups ? "hourly pickups" : null].filter(Boolean).join(" and ")}.
+              </p>
+            )}
+            <button type="button" className="r-button-quiet min-h-[44px] self-start px-3 text-13" onClick={() => input.current?.click()}>
+              Add another screenshot
             </button>
-          </div>
-
-          {/* Add more screenshots */}
-          <button
-            style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8rem", color: "var(--color-primary)", fontWeight: 600, background: "none", border: "1.5px dashed var(--color-primary)", borderRadius: "0.5rem", padding: "0.4rem 0.75rem", cursor: "pointer", marginBottom: "0.75rem", opacity: 0.8 }}
-            onClick={() => addMoreRef.current?.click()}
-          >
-            <Plus size={13} />
-            Add another screenshot to fill more fields
+          </section>
+          <FormError>{error}</FormError>
+          <PrimaryButton onClick={save} disabled={commit.isPending}>
+            {commit.isPending ? "Saving…" : kind === "sleep" ? "Save night" : "Save day"}
+          </PrimaryButton>
+          <button type="button" className="r-button-quiet min-h-[44px]"
+            onClick={() => { setPhase("idle"); setForm({}); setLow(new Set()); setExtra({ raw: {}, platform: null }); setError(null); }}>
+            Start over
           </button>
-          <input
-            ref={addMoreRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleAddMore(Array.from(e.target.files))}
-          />
-
-          <div className="screenshot-fields-grid">
-            {activeFields.map(({ key, label, type }) => {
-              const val = fields[key as string];
-              const haVal = val != null && val !== "";
-              return (
-                <div key={key} className="screenshot-field">
-                  <label className="screenshot-field-label" style={{ color: haVal ? "var(--color-primary)" : undefined }}>
-                    {label}
-                  </label>
-                  <input
-                    className="screenshot-field-input"
-                    type={type === "number" ? "number" : "text"}
-                    value={val ?? ""}
-                    onChange={(e) => handleInputChange(key as string, e.target.value, type)}
-                    placeholder="—"
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="screenshot-actions">
-            <button className="screenshot-cancel-btn" onClick={reset}>Cancel</button>
-            <button className="screenshot-confirm-btn" onClick={handleCommit}>
-              <CheckCircle size={15} />
-              Confirm &amp; Save
-            </button>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Saving */}
-      {phase === "saving" && (
-        <div className="screenshot-status-card">
-          <Loader2 size={18} className="screenshot-spinner" />
-          <span className="screenshot-status-text">Saving...</span>
-        </div>
-      )}
-
-      {/* Done */}
-      {phase === "done" && (
-        <div className="screenshot-status-card screenshot-done">
-          <CheckCircle size={20} className="screenshot-done-icon" />
-          <div>
-            <p className="screenshot-status-text">
-              {savedAction === "updated" ? "Entry updated" : "Entry saved"}
-            </p>
-            <p className="screenshot-review-hint">
-              Sleep entry saved.
-            </p>
-          </div>
-          <button className="screenshot-retry-btn" onClick={reset}>
-            <Upload size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Error */}
-      {phase === "error" && (
-        <div className="screenshot-status-card screenshot-error">
-          <XCircle size={20} className="screenshot-error-icon" />
-          <div>
-            <p className="screenshot-status-text">Could not read screenshot</p>
-            <p className="screenshot-review-hint">{errorMsg}</p>
-          </div>
-          <button className="screenshot-retry-btn" onClick={reset}>
-            <RefreshCw size={14} />
-          </button>
-        </div>
-      )}
+      {phase !== "review" && <FormError>{error}</FormError>}
     </div>
   );
 }
