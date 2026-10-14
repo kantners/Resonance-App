@@ -253,3 +253,12 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 input.r-time::-webkit-calendar-picker-indicator { display: none; }
 input.r-time::-webkit-datetime-edit { padding: 0; white-space: nowrap; }
 input.r-time { font-variant-numeric: tabular-nums; }
+
+/* Pinned screen header. --s runs 0 (top of page) to 1 (scrolled 80px); see useHeroShrink. */
+.r-hero { --s: 0; padding-top: calc(28px - 14px * var(--s)); padding-bottom: calc(10px - 4px * var(--s));
+  border-bottom: 1px solid rgb(var(--line) / var(--s)); box-shadow: 0 8px 10px -9px rgb(var(--shadow) / calc(0.14 * var(--s))); }
+.r-hero-brand { margin-bottom: calc(14px - 8px * var(--s)); }
+.r-hero-shield { width: calc(52px - 14px * var(--s)); height: auto; }
+.r-hero-word { font-size: calc(40px - 10px * var(--s)); }
+.r-hero-sub { padding-top: calc(12px - 6px * var(--s)); }
+.r-hero-sub h1 { font-size: calc(30px - 5px * var(--s)); }

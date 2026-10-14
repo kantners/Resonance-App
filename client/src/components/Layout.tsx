@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { Link, useLocation } from "wouter";
 import { useMe } from "@/lib/api";
 import { toggleTheme } from "@/lib/theme";
@@ -59,27 +59,66 @@ function BottomNav() {
   );
 }
 
+
+/**
+ * Pinned-header shrink: as the page scrolls the first 80px, --s eases 0 → 1 and
+ * the CSS (.r-hero) scales the badge, wordmark and padding down a little.
+ * The height the shrink gives up is handed back as bottom margin, so the content
+ * never shifts under the finger; only the pinned bar itself gets smaller.
+ */
+function useHeroShrink(ref: RefObject<HTMLElement>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let full = 0, raf = 0;
+    const measure = () => {
+      el.style.setProperty("--s", "0");
+      el.style.marginBottom = "0px";
+      full = el.offsetHeight;
+    };
+    const apply = () => {
+      raf = 0;
+      const s = Math.max(0, Math.min(1, window.scrollY / 80));
+      el.style.setProperty("--s", s.toFixed(3));
+      el.style.marginBottom = `${Math.max(0, full - el.offsetHeight)}px`;
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
+    const onResize = () => { measure(); apply(); };
+    measure(); apply();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    document.fonts?.ready.then(onResize).catch(() => {});
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [ref]);
+}
+
 /** A top-level screen (Brief, Log, Trends, Study) with the bottom navigation. */
 export function TabScreen({ children, label }: { children: ReactNode; label?: string }) {
   return (
     <div className="min-h-screen flex justify-center bg-ground">
       <div className="w-full max-w-phone flex flex-col min-h-screen">
-        <main aria-label={label} className="flex-1 flex flex-col gap-[14px] px-6 pt-7 pb-4">{children}</main>
+        <main aria-label={label} className="flex-1 flex flex-col gap-[14px] px-6 pb-4">{children}</main>
         <BottomNav />
       </div>
     </div>
   );
 }
 
-/** Header for a tab screen: mono kicker line, then a serif title. */
-export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?: string; title: string; demo?: boolean }) {
+/** Pinned header for a tab screen: badge and wordmark, then the title (date range at right). It shrinks slightly on scroll. */
+export function TabHeader({ meta, title, demo }: { kicker?: string; meta?: string; title: string; demo?: boolean }) {
+  const ref = useRef<HTMLElement>(null);
+  useHeroShrink(ref);
   return (
-    <header className="flex flex-col gap-1">
-      {/* Brand row: larger than the page title; byline justified to the name's width. */}
-      <div className="flex items-center gap-3 mb-4">
-        <img src="/brand-shield.png" alt="" width={34} height={44} className="w-[34px] h-auto" />
+    <header ref={ref} className="r-hero sticky top-0 z-20 -mx-6 px-6 bg-ground flex flex-col">
+      {/* Brand row: byline justified to the name's width. */}
+      <div className="r-hero-brand flex items-center gap-3">
+        <img src="/brand-shield.png" alt="" width={52} height={67} className="r-hero-shield" />
         <div className="inline-flex flex-col items-stretch gap-1.5">
-          <span className="font-serif font-bold text-[36px] leading-none text-ink">Resonance</span>
+          <span className="r-hero-word font-serif font-bold leading-none text-ink">Resonance</span>
           <span className="flex items-center gap-1.5" aria-label="by Blue Ember Wellness">
             <span aria-hidden="true" className="flex-1 min-w-[6px] h-px bg-[rgb(var(--brand-rule))]" />
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase whitespace-nowrap text-[rgb(var(--brand-text))]">By Blue Ember Wellness</span>
@@ -87,11 +126,10 @@ export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?
           </span>
         </div>
       </div>
-      <div className="flex justify-between items-center">
-        <span className="font-mono text-12 tracking-header text-muted">{kicker}</span>
+      <div className="flex justify-between items-baseline gap-3">
+        <h1 className="m-0 font-serif font-semibold text-26 leading-[1.1]">{title}</h1>
         {meta && <span className="font-mono text-12 tracking-header text-muted">{meta}</span>}
       </div>
-      <h1 className="m-0 font-serif font-semibold text-26 leading-[1.1]">{title}</h1>
       {demo && <div className="pt-1"><DemoTag /></div>}
     </header>
   );
@@ -101,10 +139,12 @@ export function TabHeader({ kicker, meta, title, demo }: { kicker: string; meta?
 export function SubScreen({
   back, title, meta, demo, children,
 }: { back: { href: string; label: string }; title: string; meta?: ReactNode; demo?: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
+  useHeroShrink(ref);
   return (
     <div className="min-h-screen flex justify-center bg-ground">
-      <main className="w-full max-w-phone flex flex-col gap-[18px] px-6 pt-3 pb-8 box-border">
-        <header className="flex flex-col gap-1">
+      <main className="w-full max-w-phone flex flex-col gap-[18px] px-6 pb-8 box-border">
+        <header ref={ref} className="r-hero r-hero-sub sticky top-0 z-20 -mx-6 px-6 bg-ground flex flex-col gap-1">
           <Link href={back.href} className="self-start flex items-center gap-0.5 min-h-[44px] text-15 font-medium no-underline">
             <BackIcon />{back.label}
           </Link>

@@ -12,6 +12,7 @@ import { signalError, signalSaved } from "@/lib/feedback";
 import { deviceTimeZone } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
 import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
+import { hapticsEnabled, setHaptics } from "@/lib/haptics";
 
 export default function SettingsScreen() {
   const { data: me } = useMe();
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>(readTheme);
+  const [haptics, setHapticsState] = useState(hapticsEnabled);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pwBusy, setPwBusy] = useState(false);
@@ -81,6 +83,19 @@ export default function SettingsScreen() {
             <button key={t} type="button" className="r-chip flex-1" aria-pressed={theme === t}
               onClick={() => { setTheme(t); applyTheme(t); }}>
               {t === "system" ? "System" : t === "light" ? "Light" : "Dark"}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="r-card px-5 py-4 flex flex-col gap-2.5">
+        <Eyebrow>TOUCH FEEDBACK</Eyebrow>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">A light tap on buttons and cards. Works on Android; iPhones don't allow it from web apps.</p>
+        <div className="flex gap-2" role="group" aria-label="Touch feedback">
+          {([true, false] as const).map(on => (
+            <button key={String(on)} type="button" className="r-chip flex-1" aria-pressed={haptics === on}
+              onClick={() => { setHapticsState(on); setHaptics(on); }}>
+              {on ? "On" : "Off"}
             </button>
           ))}
         </div>
