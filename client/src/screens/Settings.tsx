@@ -12,7 +12,7 @@ import { signalError, signalSaved } from "@/lib/feedback";
 import { deviceTimeZone } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
 import { applyTheme, readTheme, type ThemeChoice } from "@/lib/theme";
-import { hapticsEnabled, setHaptics } from "@/lib/haptics";
+import { hapticMode, hapticsEnabled, setHaptics, tick } from "@/lib/haptics";
 
 export default function SettingsScreen() {
   const { data: me } = useMe();
@@ -24,6 +24,7 @@ export default function SettingsScreen() {
   const [err, setErr] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>(readTheme);
   const [haptics, setHapticsState] = useState(hapticsEnabled);
+  const [hapticTest, setHapticTest] = useState<string | null>(null);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pwBusy, setPwBusy] = useState(false);
@@ -90,7 +91,11 @@ export default function SettingsScreen() {
 
       <section className="r-card px-5 py-4 flex flex-col gap-2.5">
         <Eyebrow>TOUCH FEEDBACK</Eyebrow>
-        <p className="m-0 text-13 leading-[1.45] text-ink-soft">A light tap on buttons and cards. Works on Android; iPhones don't allow it from web apps.</p>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">
+          {hapticMode() === "vibrate" && "A light tap on buttons and cards. This phone supports vibration."}
+          {hapticMode() === "ios-switch" && "A light tap on buttons and cards, using the iPhone's switch haptic (iOS 17.4 and later)."}
+          {hapticMode() === "none" && "This browser doesn't allow touch feedback."}
+        </p>
         <div className="flex gap-2" role="group" aria-label="Touch feedback">
           {([true, false] as const).map(on => (
             <button key={String(on)} type="button" className="r-chip flex-1" aria-pressed={haptics === on}
@@ -98,7 +103,14 @@ export default function SettingsScreen() {
               {on ? "On" : "Off"}
             </button>
           ))}
+          <button type="button" className="r-chip flex-1"
+            onClick={() => setHapticTest(tick(40)
+              ? "Sent a tap. If you felt nothing, check your phone's vibration and battery-saver settings."
+              : "The browser refused to vibrate.")}>
+            Test
+          </button>
         </div>
+        {hapticTest && <p role="status" className="m-0 text-12 leading-[1.45] text-ink-soft">{hapticTest}</p>}
       </section>
 
       <section className="r-card px-5 py-4 flex flex-col gap-2.5">

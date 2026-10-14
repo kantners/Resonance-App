@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F5F3EE",
-  "theme_color": "#F5F3EE",
+  "background_color": "#DDD5C6",
+  "theme_color": "#DDD5C6",
   "categories": ["health", "lifestyle"],
   "icons": [
     { "src": "/icon-72x72.png",       "sizes": "72x72",   "type": "image/png" },

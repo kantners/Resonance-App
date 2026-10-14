@@ -13,20 +13,20 @@
    ══════════════════════════════════════════════════════════════════════ */
 :root {
   /* Base: Blue Ember linen + navy (October 2026) */
-  --ground: 245 243 238;          /* page background: linen #f5f3ee */
-  --surface: 255 255 255;         /* cards, nav */
+  --ground: 221 213 198;          /* page background: deeper linen #ddd5c6 (about 20% darker than #f5f3ee) */
+  --surface: 252 250 245;         /* cards, nav: warm paper #fcfaf5 */
   --ink: 18 40 58;                /* primary text, marks, primary buttons: navy #12283a (13.6:1 on ground) */
   --ink-soft: 42 83 110;          /* body copy on cards: #2a536e (8.2:1) */
-  --muted: 79 98 106;             /* secondary labels, captions: website ash #4F626A (5.8:1 on ground) */
+  --muted: 66 84 92;              /* secondary labels, captions: deepened ash #42545c (5.6:1 on ground, 7.3:1 on cards) */
   --neutral: 96 119 128;          /* neutral data bars: #607780 (4.7:1) */
   --neutral-line: 138 155 162;    /* neutral chart lines */
   --placeholder: 163 172 168;     /* dashed placeholder borders */
   --control: 143 136 121;         /* input and chip borders, axes: #8f8879, 3.5:1 on white (form controls need 3:1) */
-  --line: 221 216 205;            /* card borders, dividers */
-  --track: 230 226 216;           /* bar tracks, inner dividers */
-  --stripe: 233 229 220;          /* placeholder stripes */
-  --wash: 238 235 227;            /* neutral badge / icon wash */
-  --hairline: 239 236 229;        /* row separators */
+  --line: 201 192 175;            /* card borders, dividers */
+  --track: 226 220 206;           /* bar tracks, inner dividers */
+  --stripe: 230 224 212;          /* placeholder stripes */
+  --wash: 236 231 219;            /* neutral badge / icon wash */
+  --hairline: 229 223 210;        /* row separators */
 
   /* Physiology (HRV, resting HR): Blue Ember deep teal.
      #1A6877 (website --be-ember-deep), 6.4:1 on white. Chosen over the lighter
@@ -63,6 +63,9 @@
      match. The mono and serif names stay so existing classes keep working, but
      they resolve to the same family: numbers use tabular figures (see .font-mono
      below), titles use tighter tracking and a heavier weight (see .font-serif). */
+  /* Handmade-paper grain (light theme only): fine tooth, soft mottling, a few pale fibres. */
+  --paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.30  0 0 0 0 0.23  0 0 0 0 0.13  1.6 0 0 0 -0.62'/%3E%3C/filter%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.016' numOctaves='3' seed='8' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.33  0 0 0 0 0.20  0 1.5 0 0 -0.62'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.55' numOctaves='2' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.93  7 0 0 0 -3.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.50'/%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.07'/%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.32'/%3E%3C/svg%3E");
+  --paper-card: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.30  0 0 0 0 0.23  0 0 0 0 0.13  1.6 0 0 0 -0.62'/%3E%3C/filter%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.016' numOctaves='3' seed='8' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.33  0 0 0 0 0.20  0 1.5 0 0 -0.62'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.55' numOctaves='2' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.93  7 0 0 0 -3.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.16'/%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.04'/%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.18'/%3E%3C/svg%3E");
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
@@ -91,6 +94,7 @@
   --exposure: 184 137 47; --exposure-strong: 240 201 112; --exposure-mid: 138 106 42;
   --exposure-wash: 43 38 20; --exposure-field: 36 31 18;
   --alert: 240 201 112; --shadow: 0 0 0; --brand-rule: 224 184 95; --brand-text: 240 201 112;
+  --paper: none; --paper-card: none;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -103,6 +107,7 @@
     --exposure: 184 137 47; --exposure-strong: 240 201 112; --exposure-mid: 138 106 42;
     --exposure-wash: 43 38 20; --exposure-field: 36 31 18;
     --alert: 240 201 112; --shadow: 0 0 0; --brand-rule: 224 184 95; --brand-text: 240 201 112;
+    --paper: none; --paper-card: none;
     color-scheme: dark;
   }
 }
@@ -112,6 +117,8 @@
   body {
     @apply bg-ground text-ink font-sans antialiased;
     margin: 0;
+    background-image: var(--paper);
+    background-attachment: fixed;
   }
   a { @apply text-physiology; }
   a:hover { @apply text-physiology-strong; }
@@ -124,8 +131,10 @@
 
 @layer components {
   /* Card on the ground: 14px radius (sections), 12px (small tiles). */
-  .r-card { @apply bg-surface border border-line rounded-card; }
-  .r-tile { @apply bg-surface border border-line rounded-tile; }
+  /* Paper grain on every linen-ground surface (page wrappers and the pinned header). */
+  .bg-ground { background-image: var(--paper); background-attachment: fixed; }
+  .r-card { @apply bg-surface border border-line rounded-card; background-image: var(--paper-card); }
+  .r-tile { @apply bg-surface border border-line rounded-tile; background-image: var(--paper-card); }
 
   /* Mono uppercase eyebrow: "YOUR WEEK", "LAST NIGHT". */
   .r-eyebrow { @apply font-mono text-11 tracking-eyebrow text-muted uppercase; }
