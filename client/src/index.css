@@ -184,9 +184,24 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   box-shadow: 0 0 0 3px rgb(var(--physiology) / 0.2);
 }
 
-/* Active tab: teal tint and a slightly heavier icon stroke, as on an iOS tab bar. */
-.r-nav-item svg { stroke-width: 1.6; }
-.r-nav-item[aria-current="page"] svg { stroke-width: 2.1; }
+/* Bottom tab bar, in the Blue Ember Breathwork app's language: a deep translucent bar with a
+   teal-tinted hairline, 20px icons over 11px labels, and the active tab marked by a soft teal
+   pill behind its icon. The upward shadow and full-bleed edge make it read as docked to the bottom. */
+.r-nav {
+  background: rgb(var(--surface) / 0.92);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: 1px solid rgb(var(--physiology) / 0.18);
+  box-shadow: 0 -2px 14px rgb(var(--shadow) / 0.08);
+}
+.r-nav-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 28px; border-radius: 999px; border: 1px solid transparent;
+}
+.r-nav-item svg { stroke-width: 1.75; }
+.r-nav-item[aria-current="page"] svg { stroke-width: 2; }
+.r-nav-item[aria-current="page"] .r-nav-icon {
+  background: rgb(var(--physiology) / 0.10); border-color: rgb(var(--physiology) / 0.28);
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .r-button, .r-button-quiet, .r-chip {

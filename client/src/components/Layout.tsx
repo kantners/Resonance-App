@@ -17,12 +17,12 @@ function NavItem({ href, label, icon, active, onClick }: { href: string; label: 
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "r-nav-item flex flex-col items-center justify-center gap-[3px] min-h-[48px] no-underline text-11 leading-none tracking-[0.01em]",
-        active ? "text-physiology font-semibold hover:text-physiology" : "text-muted font-medium hover:text-ink",
+        "r-nav-item flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 min-h-[56px] no-underline leading-none",
+        active ? "text-physiology font-semibold hover:text-physiology" : "text-muted font-normal hover:text-ink",
       )}
     >
-      {icon}
-      {label}
+      <span className="r-nav-icon">{icon}</span>
+      <span className="text-11 tracking-[0.01em]">{label}</span>
     </Link>
   );
 }
@@ -38,11 +38,11 @@ function BottomNav() {
     if (taps.current.length >= 3) { taps.current = []; toggleTheme(); }
   };
   const tabs = [
-    { href: "/", label: "Brief", icon: <BriefIcon size={24} />, match: (l: string) => l === "/" || l === "/how" },
-    { href: "/log", label: "Log", icon: <LogIcon size={24} />, match: (l: string) => l.startsWith("/log") },
-    { href: "/trends", label: "Trends", icon: <TrendsIcon size={24} />, match: (l: string) => l.startsWith("/trends") },
+    { href: "/", label: "Brief", icon: <BriefIcon size={20} />, match: (l: string) => l === "/" || l === "/how" },
+    { href: "/log", label: "Log", icon: <LogIcon size={20} />, match: (l: string) => l.startsWith("/log") },
+    { href: "/trends", label: "Trends", icon: <TrendsIcon size={20} />, match: (l: string) => l.startsWith("/trends") },
     ...(me?.isPractitioner
-      ? [{ href: "/study", label: "Study", icon: <StudyIcon size={24} />, match: (l: string) => l.startsWith("/study") }]
+      ? [{ href: "/study", label: "Study", icon: <StudyIcon size={20} />, match: (l: string) => l.startsWith("/study") }]
       : []),
   ];
   return (
@@ -50,7 +50,7 @@ function BottomNav() {
       aria-label="Primary"
       // 44px tap targets (the floor); bottom padding only as tall as the phone's
       // home-indicator area (iPhone), otherwise 4px.
-      className="sticky bottom-0 z-10 grid border-t border-line/70 bg-surface/80 backdrop-blur-xl backdrop-saturate-150 px-2 pt-1.5 pb-[max(6px,env(safe-area-inset-bottom))]"
+      className="r-nav sticky bottom-0 z-10 grid px-2 pb-[max(4px,env(safe-area-inset-bottom))]"
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
       {tabs.map(t => <NavItem key={t.href} href={t.href} label={t.label} icon={t.icon} active={t.match(location)}
