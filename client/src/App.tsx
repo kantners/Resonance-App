@@ -20,7 +20,8 @@ import FastingScreen from "@/screens/Fasting";
 import StillnessScreen from "@/screens/Stillness";
 import ReadingScreen from "@/screens/Reading";
 import { PrivacyScreen, TermsScreen } from "@/screens/Legal";
-import { PendingSubScreen, PendingTabScreen } from "@/screens/Pending";
+import TrendsScreen from "@/screens/Trends";
+import { PendingSubScreen } from "@/screens/Pending";
 
 function Screens() {
   return (
@@ -41,7 +42,7 @@ function Screens() {
       <Route path="/log/fasting" component={FastingScreen} />
       <Route path="/quiet/:date">{() => <PendingSubScreen title="The missing quiet" back={{ href: "/", label: "Brief" }} />}</Route>
       <Route path="/study/session">{() => <PendingSubScreen title="Session record" back={{ href: "/study", label: "Study" }} />}</Route>
-      <Route path="/trends">{() => <PendingTabScreen title="Trends" />}</Route>
+      <Route path="/trends" component={TrendsScreen} />
       <Route component={NotFound} />
     </Switch>
   );
