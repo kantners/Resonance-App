@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/log/stillness", title: "Stillness", sub: "Time you chose to spend without input" },
   { href: "/log/reading", title: "Reading", sub: "Paper, e-reader or app" },
   { href: "/log/fasting", title: "Fasting", sub: "Start or end a fast" },
+  { href: "/log/heart-rate", title: "Heart rate", sub: "Live from a Bluetooth sensor, such as a Garmin in broadcast mode" },
 ];
 
 export default function LogScreen() {

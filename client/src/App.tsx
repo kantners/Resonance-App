@@ -21,6 +21,7 @@ import StillnessScreen from "@/screens/Stillness";
 import ReadingScreen from "@/screens/Reading";
 import { PrivacyScreen, TermsScreen } from "@/screens/Legal";
 import TrendsScreen from "@/screens/Trends";
+import HeartRateScreen from "@/screens/HeartRate";
 import { PendingSubScreen } from "@/screens/Pending";
 
 function Screens() {
@@ -40,6 +41,7 @@ function Screens() {
       <Route path="/log/stillness" component={StillnessScreen} />
       <Route path="/log/reading" component={ReadingScreen} />
       <Route path="/log/fasting" component={FastingScreen} />
+      <Route path="/log/heart-rate" component={HeartRateScreen} />
       <Route path="/quiet/:date">{() => <PendingSubScreen title="The missing quiet" back={{ href: "/", label: "Brief" }} />}</Route>
       <Route path="/study/session">{() => <PendingSubScreen title="Session record" back={{ href: "/study", label: "Study" }} />}</Route>
       <Route path="/trends" component={TrendsScreen} />
