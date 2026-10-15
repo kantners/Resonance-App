@@ -185,6 +185,28 @@ describe("daily data", () => {
     expect(overnight.body).toMatchObject({ hrv: 49, hrvPosture: null, hrvOffPosture: false });
   });
 
+  it("spot heart rate: separate series, linked to a stillness session, cascades on delete", async () => {
+    const c = new Client(h.base);
+    await c.register("spot-hr@example.com");
+    const base = { date: "2026-09-24", takenAt: "2026-09-24T07:30:00-04:00", durationS: 300, sampleCount: 280, device: "fenix 7X" };
+    expect((await c.post("/api/spot-hr", { ...base, kind: "calm", lowestSteadyBpm: 52.4, meanBpm: 55 })).status).toBe(200);
+    expect((await c.post("/api/spot-hr", { ...base, kind: "calm" })).status).toBe(400);                         // no values
+    expect((await c.post("/api/spot-hr", { ...base, kind: "calm", meanBpm: 300 })).status).toBe(400);          // out of range
+    expect((await c.post("/api/spot-hr", { ...base, kind: "stillness", startBpm: 62, stillnessSessionId: 9999 })).status).toBe(400);
+    const st = await c.post("/api/stillness", { date: "2026-09-24", startedAt: "2026-09-24T08:00:00-04:00", minutes: 5, type: "nothing", phoneLocation: "another_room" });
+    const linked = await c.post("/api/spot-hr", { ...base, kind: "stillness", startBpm: 62, endBpm: 55, stillnessSessionId: st.body.id });
+    expect(linked.status).toBe(200);
+    expect((await c.get("/api/spot-hr?from=2026-09-24&to=2026-09-24")).body).toHaveLength(2);
+    // Never touches the sleep resting HR.
+    expect((await c.get("/api/sleep?from=2026-09-24&to=2026-09-24")).body.every((r: any) => r.restingHr == null)).toBe(true);
+    await c.del(`/api/stillness/${st.body.id}`);
+    expect((await c.get("/api/spot-hr?from=2026-09-24&to=2026-09-24")).body).toHaveLength(1);
+    // Another user cannot read or delete it.
+    const other = new Client(h.base);
+    await other.register("spot-hr-other@example.com");
+    expect((await other.get("/api/spot-hr")).body).toHaveLength(0);
+  });
+
   it("stillness rules: reiki needs a role, app reading is never stillness", async () => {
     const c = new Client(h.base);
     await c.register("still@example.com");

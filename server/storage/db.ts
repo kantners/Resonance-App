@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, isNotNull, isNull, lte, sql, type SQL } from "
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   users, sleepLogs, breathworkLogs, fastingSessions, nightContextTags, morningReadings,
-  stillnessSessions, readingLogs, digitalExposure, phoneEvents, dailyStatus,
+  stillnessSessions, spotHrReadings, readingLogs, digitalExposure, phoneEvents, dailyStatus,
   practitioners, studyProtocols, studyEnrollments, studySessions, type ContextTag,
 } from "@shared/schema";
 import { type IStorage, type SessionContext, UniqueViolation } from "./types";
@@ -168,6 +168,19 @@ export function createDbStorage(db: NodePgDatabase): IStorage {
     },
     async deleteStillness(userId, id) {
       const r = await db.delete(stillnessSessions).where(and(eq(stillnessSessions.id, id), eq(stillnessSessions.userId, userId)));
+      return (r.rowCount ?? 0) > 0;
+    },
+    async createSpotHr(userId, data) {
+      const rows = await db.insert(spotHrReadings).values({ ...data, userId }).returning();
+      return rows[0];
+    },
+    async listSpotHr(userId, from, to) {
+      return db.select().from(spotHrReadings)
+        .where(and(eq(spotHrReadings.userId, userId), ...dateRange(spotHrReadings.date, from, to)))
+        .orderBy(asc(spotHrReadings.date), asc(spotHrReadings.takenAt));
+    },
+    async deleteSpotHr(userId, id) {
+      const r = await db.delete(spotHrReadings).where(and(eq(spotHrReadings.id, id), eq(spotHrReadings.userId, userId)));
       return (r.rowCount ?? 0) > 0;
     },
     async patchReading(userId, id, patch) {

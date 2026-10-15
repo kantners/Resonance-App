@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseHeartRateMeasurement, summarizeCapture, type HrSample } from "../shared/heartRate";
+import { parseHeartRateMeasurement, summarizeCapture, summarizeSession, windowMean, type HrSample } from "../shared/heartRate";
 
 const dv = (bytes: number[]) => new DataView(new Uint8Array(bytes).buffer);
 
@@ -69,5 +69,29 @@ describe("summarizeCapture", () => {
   });
   it("handles an empty capture", () => {
     expect(summarizeCapture([])).toEqual({ count: 0, durationS: 0, meanBpm: null, lowestSteadyBpm: null });
+  });
+});
+
+describe("summarizeSession", () => {
+  it("reports start from the pre-roll and end from the last minute", () => {
+    // 30 s at 66, then 5 minutes drifting 66 -> 54
+    const smp = series(330, s => (s <= 30 ? 66 : 66 - ((s - 30) / 300) * 12));
+    const r = summarizeSession(smp, 330_000);
+    expect(r.startBpm).toBe(66);
+    expect(r.endBpm!).toBeLessThan(57);
+    expect(r.endBpm!).toBeGreaterThan(53);
+    expect(r.durationS).toBe(300);
+  });
+  it("returns null for end when the tail has too few samples", () => {
+    const smp = series(330, () => 60).filter(s => s.t < 280_000);   // sensor dropped for the last 50 s
+    expect(summarizeSession(smp, 330_000).endBpm).toBeNull();
+  });
+  it("handles a session shorter than the pre-roll", () => {
+    const r = summarizeSession(series(20, () => 60), 20_000);
+    expect(r.durationS).toBe(0);
+    expect(r.endBpm).toBeNull();
+  });
+  it("windowMean ignores out-of-range samples", () => {
+    expect(windowMean([{ t: 0, bpm: 0 }, { t: 1, bpm: 60 }], 0, 10, 1)).toBe(60);
   });
 });

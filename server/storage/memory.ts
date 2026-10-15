@@ -2,7 +2,7 @@
 // cascades the routes rely on; not used in production.
 import type {
   User, SleepLog, BreathworkLog, FastingSession, DigitalExposure, ReadingLog, MorningReading,
-  StillnessSession, PhoneEvent, DailyStatus, Practitioner, StudyProtocol, StudyEnrollment, StudySession, ContextTag,
+  StillnessSession, SpotHrReading, PhoneEvent, DailyStatus, Practitioner, StudyProtocol, StudyEnrollment, StudySession, ContextTag,
 } from "@shared/schema";
 import { type IStorage, type SessionContext, UniqueViolation } from "./types";
 
@@ -19,6 +19,7 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
   const tags: { userId: number; date: string; tag: ContextTag }[] = [];
   const readings: MorningReading[] = [];
   const stillness: StillnessSession[] = [];
+  const spotHr: SpotHrReading[] = [];
   const reading: ReadingLog[] = [];
   const exposure: DigitalExposure[] = [];
   const phoneEvents: PhoneEvent[] = [];
@@ -155,6 +156,19 @@ export function createMemoryStorage(): IStorage & { phoneEvents: PhoneEvent[] } 
       const i = stillness.findIndex(x => x.id === sid && x.userId === userId);
       if (i < 0) return false;
       stillness.splice(i, 1);
+      for (let j = spotHr.length - 1; j >= 0; j--) if (spotHr[j].stillnessSessionId === sid) spotHr.splice(j, 1);   // ON DELETE CASCADE
+      return true;
+    },
+    async createSpotHr(userId, data) {
+      const row = { id: id(), userId, lowestSteadyBpm: null, meanBpm: null, startBpm: null, endBpm: null, device: null, stillnessSessionId: null, ...data } as SpotHrReading;
+      spotHr.push(row);
+      return row;
+    },
+    async listSpotHr(userId, from, to) { return spotHr.filter(s => s.userId === userId && inRange(s.date, from, to)).sort(byDate); },
+    async deleteSpotHr(userId, sid) {
+      const i = spotHr.findIndex(x => x.id === sid && x.userId === userId);
+      if (i < 0) return false;
+      spotHr.splice(i, 1);
       return true;
     },
     async patchReading(userId, rid, patch) {

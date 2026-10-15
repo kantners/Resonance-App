@@ -29,6 +29,13 @@
       "when": 1791919735804,
       "tag": "0003_sleep_onset_wake",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792082656259,
+      "tag": "0004_spot_hr",
+      "breakpoints": true
     }
   ]
 }

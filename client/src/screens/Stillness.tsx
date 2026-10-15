@@ -6,9 +6,10 @@ import { DateStepper } from "@/components/DateStepper";
 import { Field, FieldLabel, FormError, num, PrimaryButton, UnitInput } from "@/components/Fields";
 import { SubScreen } from "@/components/Layout";
 import { SessionRows } from "@/components/SessionRows";
+import { StillnessHr, type StillnessHrResult } from "@/components/StillnessHr";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { localToday } from "@/lib/dates";
-import { at, isClock } from "@/lib/sleepTimes";
+import { at, instantToClock, isClock } from "@/lib/sleepTimes";
 
 const TYPES = [
   { id: "breathwork", title: "Breathwork", sub: "Paced or resonance" },
@@ -40,7 +41,16 @@ export default function StillnessScreen() {
   const [started, setStarted] = useState("");
   const [phone, setPhone] = useState<(typeof PHONE)[number]["id"] | null>(null);
   const [touched, setTouched] = useState(false);
-  const save = useSave<Record<string, unknown>>("POST", "/api/stillness", [listKey]);
+  const save = useSave<Record<string, unknown>, StillnessSession>("POST", "/api/stillness", [listKey]);
+  const hrSave = useSave<Record<string, unknown>>("POST", "/api/spot-hr");
+  const [hrResult, setHrResult] = useState<StillnessHrResult | null>(null);
+  const [hrReset, setHrReset] = useState(0);
+  const [hrError, setHrError] = useState<string | null>(null);
+
+  function onHr(r: StillnessHrResult | null) {
+    setHrResult(r);
+    if (r) { setDate(today); setMins(String(r.minutes)); setStarted(instantToClock(r.startedAt.toISOString())); }
+  }
 
   const m = num(mins);
   const bad = {
@@ -60,11 +70,24 @@ export default function StillnessScreen() {
     const minutes = Math.round(m);
     // Started defaults to "just now" for today (minus the duration), noon for an earlier day.
     const startedAt = started ? at(date, started) : date === today ? new Date(Date.now() - minutes * 60_000) : at(date, "12:00");
-    await save.mutateAsync({
+    setHrError(null);
+    const row = await save.mutateAsync({
       date, startedAt: startedAt.toISOString(), minutes, type, phoneLocation: phone,
       ...(type === "reiki" ? { reikiRole: role } : {}),
       ...(type === "reading" ? { readingMedium: medium } : {}),
     });
+    if (hrResult) {
+      // The session is already saved; a failure here only costs the heart rate numbers.
+      try {
+        await hrSave.mutateAsync({
+          date, takenAt: hrResult.startedAt.toISOString(), kind: "stillness",
+          startBpm: hrResult.startBpm, endBpm: hrResult.endBpm, meanBpm: hrResult.meanBpm,
+          durationS: Math.max(1, hrResult.durationS), sampleCount: Math.max(1, hrResult.sampleCount),
+          device: hrResult.device, stillnessSessionId: row.id,
+        });
+      } catch (e) { setHrError(`The session was saved, but its heart rate was not: ${errorText(e)}`); }
+      setHrResult(null); setHrReset(n => n + 1);
+    }
     setType(null); setRole(null); setMedium(null); setMins(""); setStarted(""); setPhone(null); setTouched(false);
   }
 
@@ -77,6 +100,8 @@ export default function StillnessScreen() {
     <SubScreen back={{ href: "/log", label: "Log" }} title="Stillness"
       meta={<DateStepper date={date} onChange={setDate} max={today} />} demo={me?.isDemo}>
       <p className="m-0 text-13 leading-[1.45] text-ink-soft">Time you chose to spend without input. Counted separately from time the phone simply wasn't used.</p>
+
+      <StillnessHr onResult={onHr} resetToken={hrReset} />
 
       <section aria-label="What was it?" className="flex flex-col gap-2.5">
         <FieldLabel>What was it?</FieldLabel>
@@ -132,7 +157,7 @@ export default function StillnessScreen() {
         <p className="m-0 text-12 leading-[1.45] text-ink-soft">Whether a nearby phone matters is an open question. This field lets your own data test it.</p>
       </section>
 
-      <FormError>{save.error ? errorText(save.error) : touched && Object.values(bad).some(Boolean) ? "Check the highlighted fields." : null}</FormError>
+      <FormError>{hrError ?? (save.error ? errorText(save.error) : touched && Object.values(bad).some(Boolean) ? "Check the highlighted fields." : null)}</FormError>
       <PrimaryButton onClick={submit} disabled={save.isPending}>{save.isPending ? "Saving…" : "Save"}</PrimaryButton>
 
       <SessionRows heading={date === today ? "Today" : "That day"} totalLabel="Total" url="/api/stillness" listKey={listKey} minutesField="minutes" rows={rows}

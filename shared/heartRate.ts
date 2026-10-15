@@ -83,3 +83,32 @@ export function summarizeCapture(samples: HrSample[], opts: SummaryOptions = {})
 }
 
 function round1(n: number) { return Math.round(n * 10) / 10; }
+
+// ─── Stillness session summary ───────────────────────────────────────────────
+// A session is recorded as: a short pre-roll while the person gets still (the
+// "start" value), then the timed session, whose last minute is the "end" value.
+
+export function windowMean(samples: HrSample[], fromMs: number, toMs: number, minCount: number): number | null {
+  const v = samples.filter(s => s.t >= fromMs && s.t <= toMs && s.bpm >= HR_MIN && s.bpm <= HR_MAX);
+  return v.length >= minCount ? round1(v.reduce((a, s) => a + s.bpm, 0) / v.length) : null;
+}
+
+export interface SessionHr {
+  startBpm: number | null;   // mean of the pre-roll
+  endBpm: number | null;     // mean of the last tailS seconds
+  meanBpm: number | null;    // mean across the timed session
+  durationS: number;         // timed session only, pre-roll excluded
+  sampleCount: number;
+}
+
+export function summarizeSession(samples: HrSample[], endMs: number, preRollS = 30, tailS = 60): SessionHr {
+  const pre = preRollS * 1000;
+  const valid = samples.filter(s => s.bpm >= HR_MIN && s.bpm <= HR_MAX);
+  return {
+    startBpm: windowMean(samples, 0, pre, 10),
+    endBpm: windowMean(samples, Math.max(pre, endMs - tailS * 1000), endMs, 20),
+    meanBpm: windowMean(samples, pre, endMs, 20),
+    durationS: Math.max(0, Math.round((endMs - pre) / 1000)),
+    sampleCount: valid.length,
+  };
+}

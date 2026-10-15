@@ -6,6 +6,7 @@ import type { IStorage } from "../storage/types";
 import { registerAuthRoutes, registerHealthRoute } from "./auth";
 import { registerDailyRoutes } from "./daily";
 import { registerScreenshotRoutes } from "./screenshot";
+import { registerSpotHrRoutes } from "./spotHr";
 import { registerStudyRoutes } from "./study";
 
 /** Sends one image with a prompt to a vision model; returns the raw text reply. */
@@ -39,6 +40,7 @@ export function registerRoutes(app: Express, deps: RouteDeps) {
 
   registerDailyRoutes(app, deps);
   registerScreenshotRoutes(app, deps);
+  registerSpotHrRoutes(app, deps);
   registerStudyRoutes(app, deps);
 
   app.use("/api", (_req, res) => {

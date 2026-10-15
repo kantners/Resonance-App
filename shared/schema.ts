@@ -192,6 +192,32 @@ export const insertStillnessSchema = createInsertSchema(stillnessSessions).omit(
 export type InsertStillness = z.infer<typeof insertStillnessSchema>;
 export type StillnessSession = typeof stillnessSessions.$inferSelect;
 
+// ─── SPOT HEART RATE (Bluetooth sensor) ──────────────────────────────────────
+// Summary numbers from a spot capture with a Bluetooth sensor (a watch in
+// broadcast mode sends BPM only). A series of its own: never written into
+// sleep_logs.resting_hr, which is the device's overnight figure and is not
+// comparable. kind = calm (seated capture) or stillness (start/end around a
+// stillness session, linked by stillnessSessionId). The beat-by-beat stream is
+// never sent to the server.
+export const spotHrReadings = pgTable("spot_hr_readings", {
+  id:                 serial("id").primaryKey(),
+  userId:             integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date:               text("date").notNull(),
+  takenAt:            text("taken_at").notNull(),                 // ISO
+  kind:               text("kind").notNull(),                     // calm | stillness
+  lowestSteadyBpm:    real("lowest_steady_bpm"),                  // calm: lowest steady minute
+  meanBpm:            real("mean_bpm"),
+  startBpm:           real("start_bpm"),                          // stillness: first 30 s, before the timer
+  endBpm:             real("end_bpm"),                            // stillness: last 60 s
+  durationS:          integer("duration_s").notNull(),
+  sampleCount:        integer("sample_count").notNull(),
+  device:             text("device"),                             // sensor name as it advertised, e.g. "fenix 7X"
+  stillnessSessionId: integer("stillness_session_id").references(() => stillnessSessions.id, { onDelete: "cascade" }),
+}, (t) => [index("spot_hr_user_date").on(t.userId, t.date)]);
+export const zSpotHrKind = z.enum(["calm", "stillness"]);
+export type SpotHrReading = typeof spotHrReadings.$inferSelect;
+export type InsertSpotHr = Omit<typeof spotHrReadings.$inferInsert, "id" | "userId">;
+
 // ─── PHONE EVENTS (Android only; capture deferred — needs a native plugin) ───
 export const phoneEvents = pgTable("phone_events", {
   id:         serial("id").primaryKey(),

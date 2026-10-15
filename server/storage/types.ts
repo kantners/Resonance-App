@@ -1,7 +1,7 @@
 import type {
   User, InsertUser, SleepLog, BreathworkLog, InsertBreathwork, FastingSession,
   DigitalExposure, InsertDigitalExposure, ReadingLog, InsertReadingLog, MorningReading, InsertMorningReading,
-  StillnessSession, InsertStillness, PhoneEvent, DailyStatus, InsertDailyStatus,
+  StillnessSession, InsertStillness, SpotHrReading, InsertSpotHr, PhoneEvent, DailyStatus, InsertDailyStatus,
   Practitioner, StudyProtocol, StudyEnrollment, StudySession, ContextTag,
 } from "@shared/schema";
 
@@ -91,6 +91,11 @@ export interface IStorage {
   listReading(userId: number, from?: string, to?: string): Promise<ReadingLog[]>;
   patchStillness(userId: number, id: number, patch: StillnessPatch): Promise<StillnessSession | null>;
   deleteStillness(userId: number, id: number): Promise<boolean>;
+
+  // Spot heart rate (Bluetooth sensor summaries; its own series)
+  createSpotHr(userId: number, data: InsertSpotHr): Promise<SpotHrReading>;
+  listSpotHr(userId: number, from?: string, to?: string): Promise<SpotHrReading[]>;
+  deleteSpotHr(userId: number, id: number): Promise<boolean>;
   patchReading(userId: number, id: number, patch: ReadingPatch): Promise<ReadingLog | null>;
   deleteReading(userId: number, id: number): Promise<boolean>;
 
