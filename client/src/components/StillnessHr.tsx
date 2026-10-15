@@ -2,7 +2,7 @@
 // Broadcast Heart Rate mode, for example). 30 seconds of "before" while you get still, then the
 // timed session; the last minute is the "after". Only the summary numbers leave this component.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { bluetoothSupported, useHeartRateSensor } from "@/hooks/useHeartRateSensor";
+import { bluetoothHelp, bluetoothSupported, useHeartRateSensor } from "@/hooks/useHeartRateSensor";
 import { summarizeSession, type HrSample, type SessionHr } from "@shared/heartRate";
 
 export const PRE_ROLL_S = 30;
@@ -54,7 +54,14 @@ export function StillnessHr({ onResult, resetToken }: { onResult: (r: StillnessH
 
   function discard() { setPhase("idle"); setDone(null); setNote(null); onResult(null); }
 
-  if (!bluetoothSupported()) return null;
+  if (!bluetoothSupported()) {
+    return (
+      <section aria-label="Heart rate" className="r-card p-4 flex flex-col gap-2">
+        <span className="text-15 font-semibold">Heart rate <span className="font-normal text-13 text-muted">· optional</span></span>
+        <p className="m-0 text-13 leading-[1.45] text-ink-soft">{bluetoothHelp()}</p>
+      </section>
+    );
+  }
   const connected = hr.status === "live" || hr.status === "reconnecting";
   const timing = phase === "preroll" || phase === "running";
 

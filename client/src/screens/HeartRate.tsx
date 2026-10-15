@@ -10,7 +10,7 @@ import { FormError, PrimaryButton } from "@/components/Fields";
 import { errorText, useMe, useSave } from "@/lib/api";
 import { addDays, fmtMonthDay, localIsoNow, localToday } from "@/lib/dates";
 import { apiRequest } from "@/lib/queryClient";
-import { bluetoothSupported, useHeartRateSensor } from "@/hooks/useHeartRateSensor";
+import { bluetoothHelp, bluetoothSupported, useHeartRateSensor } from "@/hooks/useHeartRateSensor";
 import { summarizeCapture, type CaptureSummary, type HrSample } from "@shared/heartRate";
 
 const CAPTURE_S = 300;
@@ -104,7 +104,7 @@ export default function HeartRateScreen() {
           {live && hr.contact === "lost" && " No skin contact reported."}
         </p>
         {hr.error && <p role="alert" className="m-0 text-13 text-exposure">{hr.error}</p>}
-        {unsupported && <p className="m-0 text-13 text-ink-soft">This browser cannot use Bluetooth. Use Chrome on Android.</p>}
+        {unsupported && <p className="m-0 text-13 leading-[1.45] text-ink-soft">{bluetoothHelp()}</p>}
       </section>
 
       {!connected && !unsupported && (

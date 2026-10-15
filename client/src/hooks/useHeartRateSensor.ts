@@ -16,6 +16,15 @@ type WakeLock = { release(): Promise<void>; released?: boolean };
 
 export const bluetoothSupported = () => typeof navigator !== "undefined" && "bluetooth" in navigator;
 
+/** Why Bluetooth is unavailable here, in words that fit the device. */
+export function bluetoothHelp(): string {
+  const nav = typeof navigator === "undefined" ? null : navigator;
+  const apple = !!nav && (/iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1));
+  return apple
+    ? "iPhone and iPad browsers, Chrome and Safari included, cannot use Bluetooth from a web page because Apple does not allow it. Use Chrome on an Android phone or a computer, or try Bluefy, a free iOS browser built for web Bluetooth (not tested with this app)."
+    : "This browser cannot use Bluetooth. Use Chrome on Android or a computer.";
+}
+
 const RETRY_MS = [1000, 2000, 4000, 8000, 15000, 15000, 15000, 15000];
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 const GIVE_UP = "Lost the watch. Check that it is still broadcasting heart rate and in range, then tap Reconnect.";
@@ -91,7 +100,7 @@ export function useHeartRateSensor(onSample?: (bpm: number) => void) {
 
   const connect = useCallback(async () => {
     setError(null);
-    if (!bluetoothSupported()) { setStatus("error"); setError("This browser cannot use Bluetooth. Use Chrome on Android."); return; }
+    if (!bluetoothSupported()) { setStatus("error"); setError(bluetoothHelp()); return; }
     try {
       setStatus("connecting");
       const d: Dev = await (navigator as any).bluetooth.requestDevice({ filters: [{ services: ["heart_rate"] }] });
