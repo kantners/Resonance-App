@@ -6,8 +6,7 @@ import { TabHeader, TabScreen } from "@/components/Layout";
 import { useMe } from "@/lib/api";
 
 const ITEMS = [
-  { href: "/log/morning", title: "Morning reading", sub: "HRV and heart rate, with the device and app" },
-  { href: "/log/sleep", title: "Sleep", sub: "Last night: time asleep, score, HRV, resting HR" },
+  { href: "/log/sleep", title: "Morning check-in", sub: "Sleep, HRV and resting HR in one place: scan Garmin Connect screenshots or type them in; any past night too" },
   { href: "/log/exposure", title: "Digital exposure", sub: "Yesterday's screen time and pickups" },
   { href: "/log/stillness", title: "Stillness", sub: "Time you chose to spend without input" },
   { href: "/log/reading", title: "Reading", sub: "Paper, e-reader or app" },

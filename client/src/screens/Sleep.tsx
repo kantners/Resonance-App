@@ -79,11 +79,11 @@ export default function SleepScreen() {
   return (
     <SubScreen
       back={{ href: "/", label: "Brief" }}
-      title="Sleep"
+      title="Morning check-in"
       meta={<DateStepper date={addDays(wakeDate, -1)} onChange={d => setWakeDate(addDays(d, 1))} max={addDays(today, -1)} prefix="NIGHT OF " />}
       demo={me?.isDemo}
     >
-      <Link href="/log/sleep/screenshot" className="r-tile flex items-center justify-between min-h-[48px] px-3.5 text-14 font-medium no-underline">
+      <Link href={`/log/sleep/screenshot/${wakeDate}`} className="r-tile flex items-center justify-between min-h-[48px] px-3.5 text-14 font-medium no-underline">
         <span>Fill from a screenshot</span><span aria-hidden="true" className="text-muted">›</span>
       </Link>
 

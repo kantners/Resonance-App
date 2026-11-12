@@ -79,8 +79,8 @@ function BuildingBaseline({ brief }: { brief: BriefResponse }) {
           your normal range; from then on, a week with at least 5 logged nights gets a label.
         </p>
         <div className="flex gap-4 flex-wrap">
-          <Link href="/log/sleep" className="r-link">Log last night →</Link>
-          <Link href="/log/morning" className="r-link">Morning reading →</Link>
+          <Link href="/log/sleep" className="r-link">Morning check-in →</Link>
+          <Link href="/log/morning" className="r-link">Quick 60-second reading →</Link>
         </div>
       </section>
       <SourceQuestion brief={brief} />
@@ -256,7 +256,7 @@ function LastNight({ brief }: { brief: BriefResponse }) {
         </p>
       ) : n.state === "no_data" ? (
         <p className="m-0 text-14 leading-[1.45]">
-          No HRV for last night yet. <Link href="/log/morning">Take a morning reading</Link> or <Link href="/log/sleep">log the night</Link>.
+          No HRV for last night yet. <Link href="/log/sleep">Do the morning check-in</Link> (or take a <Link href="/log/morning">quick reading</Link>).
         </p>
       ) : (
         <>

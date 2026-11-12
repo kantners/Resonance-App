@@ -35,6 +35,7 @@ function Screens() {
       <Route path="/log/exposure" component={ExposureManualScreen} />
       <Route path="/log/exposure/screenshot" component={ExposureScreenshotScreen} />
       <Route path="/log/sleep/screenshot" component={SleepScreenshotScreen} />
+      <Route path="/log/sleep/screenshot/:wake" component={SleepScreenshotScreen} />
       <Route path="/study" component={StudyScreen} />
       <Route path="/settings" component={SettingsScreen} />
       {/* Scheduled after October 4 (step 9b) */}
