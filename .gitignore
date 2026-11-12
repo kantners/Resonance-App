@@ -12,3 +12,7 @@ wellness.db
 
 # local snapshots
 *.zip
+
+# secrets
+Resonance API Key.txt
+*API Key*.txt
