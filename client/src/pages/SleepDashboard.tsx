@@ -1,7 +1,6 @@
 import { localToday, localDate, fmtLocalDate, isToday } from "@/lib/dateUtils";
 import { useState, useEffect } from "react";
-import { DatePicker } from "@/components/DatePicker";
-import { TimePicker } from "@/components/TimePicker";
+import { SleepForm } from "@/pages/DailyLog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -475,124 +474,16 @@ function Factor({ name, value, rating }: { name: string; value: string; rating: 
   );
 }
 
-/* ─── Add Entry Form ──────────────────────────────────────────── */
+/* ─── Add Entry ───────────────────────────────────────────────
+   Uses the same Morning Check-in as Daily Log (screenshot scan, every field
+   editable, any date) so sleep + HRV + heart rate are entered in one place. */
 function AddEntryForm({ onClose }: { onClose: () => void }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [form, setForm] = useState({
-    date: localToday(),
-    hours: "", quality: "7", sleepScore: "",
-    deepMin: "", lightMin: "", remMin: "", awakeMin: "",
-    restingHr: "", avgOvernightHr: "", hrv: "",
-    spo2Avg: "", spo2Low: "", respirationAvg: "", respirationLow: "",
-    stress: "", bodyBatteryChange: "", hrvStatus: "", restlessMoments: "",
-    fellAsleep: "", wokeUp: "", moodMorning: "", notes: "",
-  });
-
-  const f = (k: string) => (e: any) => setForm(p => ({ ...p, [k]: e.target.value }));
-  const n = (v: string) => v ? parseFloat(v) : undefined;
-  const i = (v: string) => v ? parseInt(v) : undefined;
-
-  const mut = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/sleep", data),
-    onSuccess: () => { toast({ title: "Sleep logged to KEWT Recovery" }); qc.invalidateQueries({ queryKey: ["/api/sleep"] }); onClose(); },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   return (
-    <div className="sd-card" style={{ margin: "12px 0" }}>
-      <div className="sd-card-header" style={{ paddingBottom: 0 }}>
-        <Moon size={14} color="#6366f1" />
-        <span className="sd-card-title">Log Sleep from Garmin Screenshots</span>
+    <div className="sd-card" style={{ margin: "12px 0", padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+        <button type="button" onClick={onClose} style={{ padding: "4px 12px", fontSize: 12, color: "var(--color-text-faint)", background: "#f3f4f6", border: "none", borderRadius: 8, cursor: "pointer" }}>Close</button>
       </div>
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        mut.mutate({
-          date: form.date, hours: parseFloat(form.hours), quality: parseInt(form.quality),
-          sleepScore: i(form.sleepScore), deepMin: i(form.deepMin), lightMin: i(form.lightMin),
-          remMin: i(form.remMin), awakeMin: i(form.awakeMin),
-          restingHr: i(form.restingHr), avgOvernightHr: i(form.avgOvernightHr),
-          hrv: n(form.hrv), spo2Avg: n(form.spo2Avg), spo2Low: n(form.spo2Low),
-          respirationAvg: n(form.respirationAvg), respirationLow: n(form.respirationLow),
-          stress: i(form.stress), bodyBatteryChange: i(form.bodyBatteryChange),
-          hrvStatus: form.hrvStatus || undefined, restlessMoments: i(form.restlessMoments),
-          fellAsleep: form.fellAsleep || undefined, wokeUp: form.wokeUp || undefined,
-          moodMorning: i(form.moodMorning), notes: form.notes || undefined,
-        });
-      }}>
-        <div className="sd-form-grid">
-          <div><label className="sd-form-label">Date *</label>
-            <DatePicker value={form.date} onChange={v => setForm(p => ({ ...p, date: v }))} color="#6366f1" />
-          </div>
-          <div><label className="sd-form-label">Total Hours *</label><input className="sd-form-input" type="number" step="0.1" required placeholder="10.9" value={form.hours} onChange={f("hours")} /></div>
-          <div><label className="sd-form-label">Sleep Score</label><input className="sd-form-input" type="number" placeholder="88" value={form.sleepScore} onChange={f("sleepScore")} /></div>
-          <div><label className="sd-form-label">Quality (1-10) *</label><input className="sd-form-input" type="number" min="1" max="10" required value={form.quality} onChange={f("quality")} /></div>
-
-          <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #f1f5f9", paddingTop: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Sleep Stages</span>
-          </div>
-          <div><label className="sd-form-label">Deep (min)</label><input className="sd-form-input" type="number" placeholder="115" value={form.deepMin} onChange={f("deepMin")} /></div>
-          <div><label className="sd-form-label">Light (min)</label><input className="sd-form-input" type="number" placeholder="325" value={form.lightMin} onChange={f("lightMin")} /></div>
-          <div><label className="sd-form-label">REM (min)</label><input className="sd-form-input" type="number" placeholder="214" value={form.remMin} onChange={f("remMin")} /></div>
-          <div><label className="sd-form-label">Awake (min)</label><input className="sd-form-input" type="number" placeholder="7" value={form.awakeMin} onChange={f("awakeMin")} /></div>
-          <div><label className="sd-form-label">Restless Moments</label><input className="sd-form-input" type="number" placeholder="30" value={form.restlessMoments} onChange={f("restlessMoments")} /></div>
-
-          <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #f1f5f9", paddingTop: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Vitals</span>
-          </div>
-          <div><label className="sd-form-label">Resting HR</label><input className="sd-form-input" type="number" placeholder="45" value={form.restingHr} onChange={f("restingHr")} /></div>
-          <div><label className="sd-form-label">Avg Overnight HR</label><input className="sd-form-input" type="number" placeholder="49" value={form.avgOvernightHr} onChange={f("avgOvernightHr")} /></div>
-          <div><label className="sd-form-label">Avg HRV (ms)</label><input className="sd-form-input" type="number" step="0.1" placeholder="47" value={form.hrv} onChange={f("hrv")} /></div>
-          <div><label className="sd-form-label">Avg SpO2 (%)</label><input className="sd-form-input" type="number" step="0.1" placeholder="95" value={form.spo2Avg} onChange={f("spo2Avg")} /></div>
-          <div><label className="sd-form-label">Low SpO2 (%)</label><input className="sd-form-input" type="number" step="0.1" placeholder="83" value={form.spo2Low} onChange={f("spo2Low")} /></div>
-          <div><label className="sd-form-label">Avg Respiration</label><input className="sd-form-input" type="number" step="0.1" placeholder="14" value={form.respirationAvg} onChange={f("respirationAvg")} /></div>
-          <div><label className="sd-form-label">Low Respiration</label><input className="sd-form-input" type="number" step="0.1" placeholder="8" value={form.respirationLow} onChange={f("respirationLow")} /></div>
-          <div><label className="sd-form-label">Stress Score</label><input className="sd-form-input" type="number" placeholder="17" value={form.stress} onChange={f("stress")} /></div>
-          <div><label className="sd-form-label">Body Battery</label><input className="sd-form-input" type="number" placeholder="+57" value={form.bodyBatteryChange} onChange={f("bodyBatteryChange")} /></div>
-          <div><label className="sd-form-label">HRV Status</label><input className="sd-form-input" type="text" placeholder="Balanced" value={form.hrvStatus} onChange={f("hrvStatus")} /></div>
-
-          <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #f1f5f9", paddingTop: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Context</span>
-          </div>
-          <div><label className="sd-form-label">Fell Asleep</label>
-            <TimePicker
-              value={form.fellAsleep}
-              onChange={v => setForm(p => ({ ...p, fellAsleep: v }))}
-              color="#6366f1"
-              quickChips={[
-                { label: "9 PM",  getValue: () => "21:00" },
-                { label: "10 PM", getValue: () => "22:00" },
-                { label: "11 PM", getValue: () => "23:00" },
-                { label: "Mid",   getValue: () => "00:00" },
-              ]}
-            />
-          </div>
-          <div><label className="sd-form-label">Woke Up</label>
-            <TimePicker
-              value={form.wokeUp}
-              onChange={v => setForm(p => ({ ...p, wokeUp: v }))}
-              color="#6366f1"
-              quickChips={[
-                { label: "5 AM", getValue: () => "05:00" },
-                { label: "6 AM", getValue: () => "06:00" },
-                { label: "7 AM", getValue: () => "07:00" },
-                { label: "8 AM", getValue: () => "08:00" },
-              ]}
-            />
-          </div>
-          <div><label className="sd-form-label">Morning Mood (1-10)</label><input className="sd-form-input" type="number" min="1" max="10" placeholder="8" value={form.moodMorning} onChange={f("moodMorning")} /></div>
-          <div className="sd-form-full"><label className="sd-form-label">Notes</label><input className="sd-form-input" type="text" placeholder="Notes from Garmin or observations" value={form.notes} onChange={f("notes")} /></div>
-
-          <div className="sd-form-full" style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button type="submit" disabled={mut.isPending} style={{ flex: 1, padding: "12px 0", fontSize: 14, fontWeight: 700, background: "linear-gradient(135deg,#4f46e5,#7c3aed)", color: "#fff", border: "none", borderRadius: 12, cursor: "pointer", opacity: mut.isPending ? 0.7 : 1 }}>
-              {mut.isPending ? "Saving…" : "Log Sleep"}
-            </button>
-            <button type="button" onClick={onClose} style={{ padding: "12px 20px", fontSize: 13, color: "var(--color-text-faint)", background: "#f3f4f6", border: "none", borderRadius: 12, cursor: "pointer" }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      </form>
+      <SleepForm onSaved={onClose} />
     </div>
   );
 }
