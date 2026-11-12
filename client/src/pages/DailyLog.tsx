@@ -1798,7 +1798,7 @@ const sleepRowToForm = (row: any, date: string): SleepFormState => {
 };
 const sameValue = (a: any, b: any) => (a == null && b == null) || String(a) === String(b) || (a != null && b != null && Number(a) === Number(b));
 
-function SleepForm() {
+export function SleepForm({ onSaved }: { onSaved?: () => void } = {}) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const color = ACCENT.sleep;
@@ -1938,6 +1938,7 @@ function SleepForm() {
       // Reload what was saved so the form shows the stored entry (and its correction marks)
       const row = await apiRequest("GET", `/api/sleep/date/${form.date}`).catch(() => null);
       setExisting(row); setScanned({}); setScanDiffs([]);
+      onSaved?.();
     } catch (err: any) {
       toast({ title: "Could not save", description: err?.message, variant: "destructive" });
     }
