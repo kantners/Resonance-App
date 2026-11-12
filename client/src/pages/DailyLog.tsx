@@ -13,7 +13,7 @@ import {
   Activity, UtensilsCrossed, Moon, Wind, AlignCenter, Briefcase, Sparkles,
   Bike, PersonStanding, Footprints, Mountain, Waves, Dumbbell, Flower2, CircleEllipsis, Shovel, Brain,
   Scale, Timer, AlertTriangle, CheckCircle2, Zap, Trophy, Snowflake,
-  ChevronDown, ChevronRight, Apple, Trash2, Upload as UploadIcon,
+  ChevronDown, ChevronRight, Apple, Trash2, Upload as UploadIcon, Camera,
 } from "lucide-react";
 
 // ── Utilities ─────────────────────────────────────────────────────────────────────────────
@@ -1744,40 +1744,168 @@ function WeightForm() {
   );
 }
 
-// ── Sleep + Vitals Form ────────────────────────────────────────────────────────
+// ── Sleep + Vitals Form (single morning check-in) ──────────────────────────────
+// One screen for the whole morning: scan Garmin screenshots (any number) to pre-fill,
+// edit any field before saving, and pick any past date to back-fill or correct a day.
+// Keys: camel = form/API (POST /api/sleep), snake = Garmin scan + audit log.
+type SleepFieldDef = { k: string; s: string; label: string; kind: "int" | "real" | "text" };
+const SLEEP_DETAIL_FIELDS: SleepFieldDef[] = [
+  { k: "sleepScore",        s: "sleep_score",         label: "Sleep Score",        kind: "int" },
+  { k: "avgOvernightHr",    s: "avg_overnight_hr",    label: "Avg Overnight HR",   kind: "int" },
+  { k: "hrvStatus",         s: "hrv_status",          label: "HRV Status",         kind: "text" },
+  { k: "deepMin",           s: "deep_min",            label: "Deep (min)",         kind: "int" },
+  { k: "lightMin",          s: "light_min",           label: "Light (min)",        kind: "int" },
+  { k: "remMin",            s: "rem_min",             label: "REM (min)",          kind: "int" },
+  { k: "awakeMin",          s: "awake_min",           label: "Awake (min)",        kind: "int" },
+  { k: "restlessMoments",   s: "restless_moments",    label: "Restless Moments",   kind: "int" },
+  { k: "spo2Avg",           s: "spo2_avg",            label: "SpO2 Avg %",         kind: "real" },
+  { k: "spo2Low",           s: "spo2_low",            label: "SpO2 Low %",         kind: "real" },
+  { k: "respirationAvg",    s: "respiration_avg",     label: "Resp Avg (brpm)",    kind: "real" },
+  { k: "respirationLow",    s: "respiration_low",     label: "Resp Low (brpm)",    kind: "real" },
+  { k: "stress",            s: "stress",              label: "Stress Avg",         kind: "int" },
+  { k: "bodyBatteryChange", s: "body_battery_change", label: "Body Battery Δ",     kind: "int" },
+];
+// Fields shown in the main block (also scanned / audited)
+const SLEEP_MAIN_FIELDS: SleepFieldDef[] = [
+  { k: "hours",      s: "hours",       label: "Hours Slept",      kind: "real" },
+  { k: "restingHr",  s: "resting_hr",  label: "Resting HR (bpm)", kind: "int" },
+  { k: "hrv",        s: "hrv",         label: "HRV (ms)",         kind: "real" },
+  { k: "fellAsleep", s: "fell_asleep", label: "Fell Asleep",      kind: "text" },
+  { k: "wokeUp",     s: "woke_up",     label: "Woke Up",          kind: "text" },
+];
+const SLEEP_ALL_FIELDS: SleepFieldDef[] = [...SLEEP_MAIN_FIELDS, ...SLEEP_DETAIL_FIELDS];
+
+type SleepFormState = Record<string, any>;
+const blankSleepForm = (date: string): SleepFormState => {
+  const f: SleepFormState = { date, quality: 7, moodMorning: 7, notes: "", morningWeight: "", energyLevel: 7, hydrationOz: "" };
+  for (const d of SLEEP_ALL_FIELDS) f[d.k] = "";
+  return f;
+};
+const numOrNull = (v: any, kind: "int" | "real" | "text") => {
+  if (v === "" || v == null) return null;
+  if (kind === "text") return String(v);
+  const n = kind === "int" ? Math.round(Number(v)) : Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+// DB row (snake_case, from /api/sleep/date/:date) → form state
+const sleepRowToForm = (row: any, date: string): SleepFormState => {
+  const f = blankSleepForm(date);
+  for (const d of SLEEP_ALL_FIELDS) if (row[d.s] != null) f[d.k] = String(row[d.s]);
+  if (row.quality != null) f.quality = row.quality;
+  if (row.mood_morning != null) f.moodMorning = row.mood_morning;
+  if (row.notes != null) f.notes = row.notes;
+  return f;
+};
+const sameValue = (a: any, b: any) => (a == null && b == null) || String(a) === String(b) || (a != null && b != null && Number(a) === Number(b));
+
 function SleepForm() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const color = ACCENT.sleep;
   const todayStr = today();
-  const [prefilled, setPrefilled] = useState(false);
-  const [form, setForm] = useState({
-    date: todayStr, hours: "", quality: 7, restingHr: "", fellAsleep: "",
-    wokeUp: "", moodMorning: 7, notes: "", morningWeight: "", energyLevel: 7, hydrationOz: "",
-  });
+  const [form, setForm] = useState<SleepFormState>(() => blankSleepForm(todayStr));
+  const [existing, setExisting] = useState<any>(null);          // saved row for form.date, if any
+  const [scanned, setScanned] = useState<Record<string, any>>({}); // snake_case values as read from screenshots
+  const [scanDiffs, setScanDiffs] = useState<string[]>([]);     // fields where a scan differs from the saved entry
+  const [scanning, setScanning] = useState<string>("");         // "" | progress text
+  const [showDetails, setShowDetails] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const skipLoad = useRef(false);
 
   const { data: sleepLogs } = useQuery<any[]>({ queryKey: ["/api/sleep"], staleTime: 30_000 });
   const { data: latestMarker } = useQuery<any>({ queryKey: ["/api/health-markers/latest"], staleTime: 30_000 });
+  const loggedDates = new Set((sleepLogs ?? []).map((s: any) => s.date));
+
+  // Load whatever is saved for the chosen date (today on first render); blank form for empty days.
+  useEffect(() => {
+    if (skipLoad.current) { skipLoad.current = false; return; }
+    let cancelled = false;
+    apiRequest("GET", `/api/sleep/date/${form.date}`).then(row => {
+      if (cancelled) return;
+      setScanned({}); setScanDiffs([]);
+      if (row) { setExisting(row); setForm(sleepRowToForm(row, form.date)); }
+      else {
+        setExisting(null);
+        setForm(f => ({ ...blankSleepForm(f.date),
+          // keep today's marker prefill below working when today has no sleep row yet
+        }));
+      }
+    }).catch(() => { /* offline or demo: leave the form as is */ });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date]);
 
   useEffect(() => {
-    if (!sleepLogs) return;
-    const rec = sleepLogs.find((s: any) => s.date === todayStr);
-    if (!rec) return;
-    setPrefilled(true);
-    setForm(f => ({ ...f, date: rec.date ?? f.date, hours: rec.hours != null ? String(rec.hours) : f.hours, quality: rec.quality ?? f.quality, restingHr: rec.restingHr != null ? String(rec.restingHr) : f.restingHr, fellAsleep: rec.fellAsleep ?? f.fellAsleep, wokeUp: rec.wokeUp ?? f.wokeUp, moodMorning: rec.moodMorning ?? f.moodMorning, notes: rec.notes ?? f.notes }));
+    if (!latestMarker || latestMarker.date !== form.date) return;
+    setForm(f => ({ ...f,
+      morningWeight: latestMarker.morningWeight != null ? String(latestMarker.morningWeight) : f.morningWeight,
+      energyLevel: latestMarker.energyLevel ?? f.energyLevel,
+      hydrationOz: latestMarker.hydrationOz != null ? String(latestMarker.hydrationOz) : f.hydrationOz }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sleepLogs]);
+  }, [latestMarker, form.date]);
 
-  useEffect(() => {
-    if (!latestMarker) return;
-    if (latestMarker.date !== todayStr) return;
-    setForm(f => ({ ...f, morningWeight: latestMarker.morningWeight != null ? String(latestMarker.morningWeight) : f.morningWeight, energyLevel: latestMarker.energyLevel ?? f.energyLevel, hydrationOz: latestMarker.hydrationOz != null ? String(latestMarker.hydrationOz) : f.hydrationOz }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestMarker]);
+  const setField = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
+  // ── Screenshot scan: any number of Garmin screens, merged into one record ──
+  const handleScan = async (files: File[]) => {
+    const images = files.filter(f => f.type.startsWith("image/"));
+    if (!images.length) return;
+    const merged: Record<string, any> = {};
+    let skipped = 0, failed = "";
+    for (let i = 0; i < images.length; i++) {
+      setScanning(`Reading screenshot ${i + 1} of ${images.length}…`);
+      try {
+        const fd = new FormData();
+        fd.append("image", images[i]);
+        fd.append("today", todayStr);
+        const res = await fetch("/api/parse-screenshot", { method: "POST", body: fd, credentials: "include" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) throw new Error(json.error || `Server error (${res.status})`);
+        if (json.type !== "sleep") { skipped++; continue; }
+        for (const [k, v] of Object.entries(json.data ?? {})) if (merged[k] == null && v != null && v !== 0) merged[k] = v;
+      } catch (e: any) { failed = e.message || "Could not read screenshot"; }
+    }
+    setScanning("");
+    if (!Object.keys(merged).length) {
+      toast({ title: "Nothing to fill in", description: failed || (skipped ? "Those look like activity or scale screens — use the Upload page for those." : "No sleep data found in the screenshot."), variant: "destructive" });
+      return;
+    }
+
+    // A scan may belong to a different day than the form; switch to that day first.
+    let base = form, ex = existing;
+    const sd = typeof merged.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(merged.date) ? merged.date : null;
+    if (sd && sd !== form.date) {
+      try { ex = await apiRequest("GET", `/api/sleep/date/${sd}`); } catch { ex = null; }
+      base = ex ? sleepRowToForm(ex, sd) : blankSleepForm(sd);
+      skipLoad.current = true;
+      setExisting(ex);
+    }
+
+    // Apply scanned values over the form
+    const next: SleepFormState = { ...base };
+    for (const d of SLEEP_ALL_FIELDS) if (merged[d.s] != null) next[d.k] = String(merged[d.s]);
+    if (merged.quality != null) next.quality = merged.quality;
+    if (merged.notes) next.notes = merged.notes;
+    setForm(next);
+
+    // Remember what the screenshots said (for the audit trail) and flag overwrites of saved data
+    const snap: Record<string, any> = { ...scanned };
+    for (const d of SLEEP_ALL_FIELDS) if (merged[d.s] != null) snap[d.s] = merged[d.s];
+    if (merged.quality != null) snap.quality = merged.quality;
+    setScanned(snap);
+    if (ex) {
+      const diffs: string[] = [];
+      for (const d of SLEEP_ALL_FIELDS) {
+        if (merged[d.s] != null && ex[d.s] != null && !sameValue(ex[d.s], merged[d.s])) diffs.push(`${d.label}: ${ex[d.s]} → ${merged[d.s]}`);
+      }
+      setScanDiffs(diffs);
+    } else setScanDiffs([]);
+    toast({ title: "Screenshot read", description: `Review the values below${failed ? ` (one screenshot failed: ${failed})` : ""}, edit anything, then save.` });
+  };
+
+  // ── Save: upsert by date; keep the screenshot's original for any value hand-corrected ──
   const sleepMut = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/sleep", data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/sleep"] }); qc.invalidateQueries({ queryKey: ["/api/dashboard"], exact: false }); qc.invalidateQueries({ queryKey: ["/api/weekly"] }); },
   });
   const markerMut = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/health-markers", data),
@@ -1786,49 +1914,134 @@ function SleepForm() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    const promises = [];
-    if (form.hours) {
-      promises.push(sleepMut.mutateAsync({ date: form.date, hours: parseFloat(form.hours), quality: form.quality, restingHr: form.restingHr ? parseInt(form.restingHr) : null, fellAsleep: form.fellAsleep || null, wokeUp: form.wokeUp || null, moodMorning: form.moodMorning, notes: form.notes }));
+    try {
+      if (form.hours) {
+        const payload: Record<string, any> = {
+          date: form.date, quality: form.quality, moodMorning: form.moodMorning,
+          notes: form.notes || null,
+        };
+        for (const d of SLEEP_ALL_FIELDS) payload[d.k] = numOrNull(form[d.k], d.kind);
+        const originals: Record<string, any> = {};
+        for (const d of SLEEP_ALL_FIELDS) {
+          const was = scanned[d.s];
+          if (was != null && !sameValue(was, payload[d.k])) originals[d.s] = { original: was, saved: payload[d.k] };
+        }
+        if (scanned.quality != null && !sameValue(scanned.quality, form.quality)) originals.quality = { original: scanned.quality, saved: form.quality };
+        if (Object.keys(originals).length) payload.originals = originals;
+        await sleepMut.mutateAsync(payload);
+      }
+      if (form.morningWeight || form.hydrationOz) {
+        await markerMut.mutateAsync({ date: form.date, morningWeight: form.morningWeight ? parseFloat(form.morningWeight) : null, energyLevel: form.energyLevel, mood: form.moodMorning, hydrationOz: form.hydrationOz ? parseInt(form.hydrationOz) : null });
+      }
+      qc.invalidateQueries({ queryKey: ["/api/sleep"] }); qc.invalidateQueries({ queryKey: ["/api/dashboard"], exact: false }); qc.invalidateQueries({ queryKey: ["/api/weekly"] });
+      toast({ title: existing ? `Updated ${form.date}` : `Logged ${form.date}` });
+      // Reload what was saved so the form shows the stored entry (and its correction marks)
+      const row = await apiRequest("GET", `/api/sleep/date/${form.date}`).catch(() => null);
+      setExisting(row); setScanned({}); setScanDiffs([]);
+    } catch (err: any) {
+      toast({ title: "Could not save", description: err?.message, variant: "destructive" });
     }
-    if (form.morningWeight || form.energyLevel || form.hydrationOz) {
-      promises.push(markerMut.mutateAsync({ date: form.date, morningWeight: form.morningWeight ? parseFloat(form.morningWeight) : null, energyLevel: form.energyLevel, mood: form.moodMorning, hydrationOz: form.hydrationOz ? parseInt(form.hydrationOz) : null }));
-    }
-    await Promise.all(promises);
-    toast({ title: "Sleep & vitals logged" });
-    setForm(f => ({ ...f, hours: "", restingHr: "", fellAsleep: "", wokeUp: "", notes: "", morningWeight: "", hydrationOz: "" }));
   };
 
   const isPending = sleepMut.isPending || markerMut.isPending;
 
+  // Small marker next to a label when a value was hand-corrected (now, or earlier — from the audit log)
+  const correctionMark = (d: SleepFieldDef) => {
+    const was = scanned[d.s];
+    const nowEdited = was != null && !sameValue(was, numOrNull(form[d.k], d.kind));
+    const past = existing?.edit_log?.[d.s];
+    const orig = nowEdited ? was : past?.original;
+    if (orig == null) return null;
+    return <span title={`Garmin screenshot read ${orig}`} style={{ marginLeft: 6, fontSize: "0.62rem", fontWeight: 700, color, cursor: "help" }}>✎ was {String(orig)}</span>;
+  };
+
+  // Last 14 days strip — tap a day to load or back-fill it
+  const stripDays = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (13 - i));
+    return localDateStr(d);
+  });
+
   return (
     <form onSubmit={handleSubmit}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <div style={{ ...styles.sectionTitle(color), marginBottom: 0 }}>Sleep & Vitals · Recovery System</div>
-        {prefilled && (
-          <span style={{ fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.04em", color: color, background: `${color}18`, border: `1px solid ${color}40`, borderRadius: 20, padding: "2px 9px", whiteSpace: "nowrap" }}>Auto-filled from Garmin</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ ...styles.sectionTitle(color), marginBottom: 0 }}>Morning Check-in · Recovery System</div>
+        {existing && (
+          <span style={{ fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.04em", color: color, background: `${color}18`, border: `1px solid ${color}40`, borderRadius: 20, padding: "2px 9px", whiteSpace: "nowrap" }}>Saved entry loaded — saving updates it</span>
         )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "140px 80px", gap: "10px 14px", marginBottom: 10 }}>
-        <div><label style={styles.label}>Date</label><FInput type="date" color={color} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
-        <div><label style={styles.label}>Hours Slept</label><FInput type="number" step="0.25" color={color} value={form.hours} onChange={e => setForm(f => ({ ...f, hours: e.target.value }))} placeholder="7.5" data-testid="input-sleep-hours" /></div>
+
+      {/* Missing-days strip */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={styles.label}>Last 14 days · tap a day to open or back-fill it</label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {stripDays.map(d => {
+            const logged = loggedDates.has(d), active = d === form.date;
+            return (
+              <button key={d} type="button" onClick={() => setField("date", d)} title={logged ? `${d} — logged` : `${d} — no entry`}
+                style={{ minWidth: 38, padding: "4px 0", borderRadius: 8, fontSize: "0.7rem", fontWeight: 700, cursor: "pointer",
+                  border: `1.5px ${logged ? "solid" : "dashed"} ${active ? color : `${color}66`}`,
+                  background: active ? color : logged ? `${color}22` : "transparent", color: active ? "#fff" : color }}>
+                {d.slice(8)}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "90px 110px 110px", gap: "10px 14px", marginBottom: 10 }}>
-        <div><label style={styles.label}>Resting HR (bpm)</label><FInput type="number" color={color} value={form.restingHr} onChange={e => setForm(f => ({ ...f, restingHr: e.target.value }))} placeholder="56" data-testid="input-resting-hr" /></div>
-        <div><label style={styles.label}>Fell Asleep</label><FInput type="time" color={color} value={form.fellAsleep} onChange={e => setForm(f => ({ ...f, fellAsleep: e.target.value }))} /></div>
-        <div><label style={styles.label}>Woke Up</label><FInput type="time" color={color} value={form.wokeUp} onChange={e => setForm(f => ({ ...f, wokeUp: e.target.value }))} /></div>
+
+      {/* Screenshot scan */}
+      <div style={{ marginBottom: 14 }}>
+        <button type="button" disabled={!!scanning} onClick={() => fileRef.current?.click()} data-testid="button-scan-garmin"
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 10, border: `1.5px dashed ${color}`, background: `${color}10`, color, fontWeight: 700, fontSize: "0.82rem", cursor: scanning ? "default" : "pointer" }}>
+          <Camera size={16} /> {scanning || "Scan Garmin screenshots — sleep, HRV and heart rate in one go"}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" style={{ display: "none" }}
+          onChange={e => { if (e.target.files) handleScan(Array.from(e.target.files)); if (fileRef.current) fileRef.current.value = ""; }} />
+        <div style={{ fontSize: "0.68rem", opacity: 0.7, marginTop: 5 }}>Pick as many screens as you need (the Garmin sleep page scrolls). Every value stays editable before you save.</div>
+        {scanDiffs.length > 0 && (
+          <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, border: "1px solid #f59e0b66", background: "#f59e0b14", fontSize: "0.72rem" }}>
+            <strong>This scan differs from the entry already saved for {form.date}.</strong> Saving will replace: {scanDiffs.join(" · ")}
+          </div>
+        )}
       </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "140px 90px 100px", gap: "10px 14px", marginBottom: 10 }}>
+        <div><label style={styles.label}>Date</label><FInput type="date" color={color} value={form.date} max={todayStr} onChange={e => e.target.value && setField("date", e.target.value)} /></div>
+        <div><label style={styles.label}>Hours Slept{correctionMark(SLEEP_MAIN_FIELDS[0])}</label><FInput type="number" step="0.01" color={color} value={form.hours} onChange={e => setField("hours", e.target.value)} placeholder="7.5" data-testid="input-sleep-hours" /></div>
+        <div><label style={styles.label}>HRV (ms){correctionMark(SLEEP_MAIN_FIELDS[2])}</label><FInput type="number" step="0.1" color={color} value={form.hrv} onChange={e => setField("hrv", e.target.value)} placeholder="52" data-testid="input-hrv" /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "100px 110px 110px", gap: "10px 14px", marginBottom: 10 }}>
+        <div><label style={styles.label}>Resting HR{correctionMark(SLEEP_MAIN_FIELDS[1])}</label><FInput type="number" color={color} value={form.restingHr} onChange={e => setField("restingHr", e.target.value)} placeholder="56" data-testid="input-resting-hr" /></div>
+        <div><label style={styles.label}>Fell Asleep</label><FInput type="time" color={color} value={form.fellAsleep} onChange={e => setField("fellAsleep", e.target.value)} /></div>
+        <div><label style={styles.label}>Woke Up</label><FInput type="time" color={color} value={form.wokeUp} onChange={e => setField("wokeUp", e.target.value)} /></div>
+      </div>
+
+      {/* Remaining Garmin metrics */}
+      <button type="button" onClick={() => setShowDetails(v => !v)} style={{ background: "none", border: "none", color, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: "2px 0", marginBottom: 8 }}>
+        {showDetails ? "▾" : "▸"} Garmin details (stages, SpO2, respiration, stress, body battery)
+      </button>
+      {showDetails && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: "10px 14px", marginBottom: 10 }}>
+          {SLEEP_DETAIL_FIELDS.map(d => (
+            <div key={d.k}>
+              <label style={styles.label}>{d.label}{correctionMark(d)}</label>
+              <FInput type={d.kind === "text" ? "text" : "number"} step={d.kind === "real" ? "0.1" : undefined} color={color} value={form[d.k]} onChange={e => setField(d.k, e.target.value)} />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "130px 90px", gap: "10px 14px", marginBottom: 10 }}>
-        <div><label style={styles.label}>Morning Weight (lbs)</label><FInput type="number" step="0.1" color={color} value={form.morningWeight} onChange={e => setForm(f => ({ ...f, morningWeight: e.target.value }))} placeholder="184.5" data-testid="input-weight" /></div>
-        <div><label style={styles.label}>Hydration (oz)</label><FInput type="number" color={color} value={form.hydrationOz} onChange={e => setForm(f => ({ ...f, hydrationOz: e.target.value }))} placeholder="80" /></div>
+        <div><label style={styles.label}>Morning Weight (lbs)</label><FInput type="number" step="0.1" color={color} value={form.morningWeight} onChange={e => setField("morningWeight", e.target.value)} placeholder="184.5" data-testid="input-weight" /></div>
+        <div><label style={styles.label}>Hydration (oz)</label><FInput type="number" color={color} value={form.hydrationOz} onChange={e => setField("hydrationOz", e.target.value)} placeholder="80" /></div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 8 }}>
-        <div><label style={styles.label}>Sleep Quality</label><RangeSlider value={form.quality} onChange={v => setForm(f => ({ ...f, quality: v }))} color={color} lowLabel="Poor 1" highLabel="Perfect 10" /></div>
-        <div><label style={styles.label}>Morning Mood</label><RangeSlider value={form.moodMorning} onChange={v => setForm(f => ({ ...f, moodMorning: v }))} color={color} lowLabel="Low 1" highLabel="Great 10" /></div>
-        <div><label style={styles.label}>Energy Level</label><RangeSlider value={form.energyLevel} onChange={v => setForm(f => ({ ...f, energyLevel: v }))} color={color} lowLabel="Depleted 1" highLabel="Energized 10" /></div>
-        <div><label style={styles.label}>Notes</label><FInput type="text" color={color} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Took melatonin, late screen time, etc." /></div>
+        <div><label style={styles.label}>Sleep Quality{scanned.quality != null && !sameValue(scanned.quality, form.quality) ? <span style={{ marginLeft: 6, fontSize: "0.62rem", fontWeight: 700, color }}>✎ was {scanned.quality}</span> : null}</label><RangeSlider value={form.quality} onChange={v => setField("quality", v)} color={color} lowLabel="Poor 1" highLabel="Perfect 10" /></div>
+        <div><label style={styles.label}>Morning Mood</label><RangeSlider value={form.moodMorning} onChange={v => setField("moodMorning", v)} color={color} lowLabel="Low 1" highLabel="Great 10" /></div>
+        <div><label style={styles.label}>Energy Level</label><RangeSlider value={form.energyLevel} onChange={v => setField("energyLevel", v)} color={color} lowLabel="Depleted 1" highLabel="Energized 10" /></div>
+        <div><label style={styles.label}>Notes</label><FInput type="text" color={color} value={form.notes} onChange={e => setField("notes", e.target.value)} placeholder="Took melatonin, late screen time, etc." /></div>
       </div>
-      <button type="submit" disabled={isPending} data-testid="button-log-sleep" style={styles.btn(color, isPending)} onMouseEnter={e => { if (!isPending) { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 6px 20px ${color}60`; } }} onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ""; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 14px ${color}40`; }}>
-        {isPending ? "Saving…" : "Log Sleep & Vitals"}
+      <button type="submit" disabled={isPending || !form.hours} data-testid="button-log-sleep" style={styles.btn(color, isPending || !form.hours)}>
+        {isPending ? "Saving…" : existing ? `Update ${form.date}` : "Log Morning Check-in"}
       </button>
     </form>
   );

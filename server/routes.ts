@@ -730,17 +730,80 @@ Rules:
     catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
+  // Tracks hand-corrected values: when a user edits a number that was read from a
+  // screenshot, the original is kept here so the correction is auditable. The column
+  // is created lazily and kept out of the Drizzle schema on purpose — if it can't be
+  // created, only this audit feature degrades; normal sleep reads/writes are unaffected.
+  let editLogReady: Promise<boolean> | null = null;
+  const ensureEditLog = () => {
+    if (!editLogReady) {
+      editLogReady = pool.query("ALTER TABLE sleep_logs ADD COLUMN IF NOT EXISTS edit_log text")
+        .then(() => true)
+        .catch((e: any) => { console.warn("[sleep] edit_log column unavailable:", e?.message); return false; });
+    }
+    return editLogReady;
+  };
+
+  // originals: { snake_case_field: { original, saved } } — only fields that were read from a
+  // screenshot and then hand-corrected. The first screenshot value is kept if a field is
+  // corrected again later. Best-effort: never blocks the save itself.
+  const saveEditLog = async (userId: number, date: string, originals: any) => {
+    if (!originals || typeof originals !== "object" || !Object.keys(originals).length) return;
+    if (!(await ensureEditLog())) return;
+    try {
+      const prev = (await pool.query("SELECT edit_log FROM sleep_logs WHERE date = $1 AND user_id = $2 ORDER BY id DESC LIMIT 1", [date, userId])).rows[0]?.edit_log;
+      let log: Record<string, any> = {};
+      try { log = prev ? JSON.parse(prev) : {}; } catch { log = {}; }
+      const at = new Date().toISOString();
+      for (const [k, v] of Object.entries(originals as Record<string, any>)) {
+        if (!/^[a-z0-9_]+$/.test(k) || !v || typeof v !== "object") continue;
+        log[k] = { original: log[k]?.original ?? v.original, saved: v.saved, at };
+      }
+      await pool.query("UPDATE sleep_logs SET edit_log = $1 WHERE date = $2 AND user_id = $3", [JSON.stringify(log), date, userId]);
+    } catch (e: any) { console.warn("[sleep] could not save edit log:", e?.message); }
+  };
+
+  // One entry per day: look up an existing row for this user + date.
+  app.get("/api/sleep/date/:date", async (req, res) => {
+    try {
+      const date = req.params.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Invalid date" });
+      const row = (await pool.query("SELECT * FROM sleep_logs WHERE user_id = $1 AND date = $2 ORDER BY id DESC LIMIT 1", [req.session.userId!, date])).rows[0];
+      if (!row) return res.json(null);
+      let editLog: any = null;
+      if (await ensureEditLog()) {
+        const r = await pool.query("SELECT edit_log FROM sleep_logs WHERE id = $1", [row.id]);
+        try { editLog = r.rows[0]?.edit_log ? JSON.parse(r.rows[0].edit_log) : null; } catch { editLog = null; }
+      }
+      res.json({ ...row, edit_log: editLog });
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post("/api/sleep", async (req, res) => {
     try {
       const data = insertSleepSchema.parse(req.body);
-      res.json(await storage.createSleepLog(req.session.userId!, data));
+      // Upsert by date so logging the same day twice updates it instead of duplicating it.
+      const existing = (await pool.query("SELECT id FROM sleep_logs WHERE user_id = $1 AND date = $2 ORDER BY id LIMIT 1", [req.session.userId!, data.date])).rows[0];
+      if (existing) {
+        const updated = await storage.updateSleepLog(req.session.userId!, existing.id, data);
+        await saveEditLog(req.session.userId!, data.date, req.body.originals);
+        return res.json(updated);
+      }
+      const created = await storage.createSleepLog(req.session.userId!, data);
+      await saveEditLog(req.session.userId!, data.date, req.body.originals);
+      res.json(created);
     } catch (e: any) { res.status(400).json({ error: e.message }); }
   });
 
   app.put("/api/sleep/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const allowed = ["fellAsleep","wokeUp","moodMorning","notes","quality","sleepScore","hours"];
+      const allowed = [
+        "hours","quality","sleepScore","restingHr","avgOvernightHr","fellAsleep","wokeUp",
+        "deepMin","lightMin","remMin","awakeMin","restlessMoments","hrv","hrvStatus",
+        "spo2Avg","spo2Low","respirationAvg","respirationLow","stress","bodyBatteryChange",
+        "moodMorning","notes",
+      ];
       const patch: any = {};
       for (const k of allowed) { if (req.body[k] !== undefined) patch[k] = req.body[k]; }
       if (Object.keys(patch).length === 0) return res.status(400).json({ error: "No fields to update" });
@@ -2507,8 +2570,11 @@ Requirements:
       const mimeType = req.file.mimetype || "image/jpeg";
       const openai = new (await import("openai")).OpenAI({ apiKey });
 
-      const today = new Date().toISOString().slice(0,10);
-      const prompt = `You are a health data extraction assistant for the KEWT wellness app. Analyze this Garmin or 1byone screenshot and extract ALL visible metrics.
+      // Use the user's local calendar date (sent by the client) for "Today" screens;
+      // the server clock is UTC and would label evening scans as tomorrow.
+      const clientToday = typeof req.body?.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.body.today) ? req.body.today : null;
+      const today = clientToday ?? new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      const prompt = `You are a health data extraction assistant for the Resonance wellness app. Analyze this Garmin or 1byone screenshot and extract ALL visible metrics.
 
 CRITICAL OUTPUT RULES:
 - Return ONLY a raw JSON object. No markdown. No explanation. No backticks. Start with { end with }.
@@ -2686,14 +2752,24 @@ Full field list:
         data.environment      = zeroNullStr(data.environment);
       }
       if (type === "sleep") {
+        if (!data.date || !/^\d{4}-\d{2}-\d{2}$/.test(String(data.date))) {
+          return res.status(400).json({ error: "A valid date (YYYY-MM-DD) is required." });
+        }
+        data.quality = zeroNullNum(data.quality);
         const existing = await pool.query("SELECT id FROM sleep_logs WHERE date = $1 AND user_id = $2", [data.date, userId]);
+        if (!existing.rows[0] && (data.hours == null || data.quality == null)) {
+          return res.status(400).json({ error: "Total hours and sleep quality (1–10) are required for a new day." });
+        }
+
         if (existing.rows[0]) {
           await pool.query(`UPDATE sleep_logs SET hours=COALESCE($1,hours), quality=COALESCE($2,quality), resting_hr=COALESCE($3,resting_hr), sleep_score=COALESCE($4,sleep_score), avg_overnight_hr=COALESCE($5,avg_overnight_hr), deep_min=COALESCE($6,deep_min), light_min=COALESCE($7,light_min), rem_min=COALESCE($8,rem_min), awake_min=COALESCE($9,awake_min), restless_moments=COALESCE($10,restless_moments), hrv=COALESCE($11,hrv), spo2_avg=COALESCE($12,spo2_avg), spo2_low=COALESCE($13,spo2_low), respiration_avg=COALESCE($14,respiration_avg), respiration_low=COALESCE($15,respiration_low), stress=COALESCE($16,stress), body_battery_change=COALESCE($17,body_battery_change), hrv_status=COALESCE($18,hrv_status), fell_asleep=COALESCE($19,fell_asleep), woke_up=COALESCE($20,woke_up), notes=COALESCE($21,notes) WHERE date=$22 AND user_id=$23`,
             [data.hours, data.quality, data.resting_hr, data.sleep_score, data.avg_overnight_hr, data.deep_min, data.light_min, data.rem_min, data.awake_min, data.restless_moments, data.hrv, data.spo2_avg, data.spo2_low, data.respiration_avg, data.respiration_low, data.stress, data.body_battery_change, data.hrv_status, data.fell_asleep, data.woke_up, data.notes, data.date, userId]);
+          await saveEditLog(userId, data.date, req.body.originals);
           return res.json({ ok: true, action: "updated", date: data.date });
         } else {
           await pool.query(`INSERT INTO sleep_logs (user_id, date, hours, quality, resting_hr, sleep_score, avg_overnight_hr, deep_min, light_min, rem_min, awake_min, restless_moments, hrv, spo2_avg, spo2_low, respiration_avg, respiration_low, stress, body_battery_change, hrv_status, fell_asleep, woke_up, notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
             [userId, data.date, data.hours, data.quality, data.resting_hr, data.sleep_score, data.avg_overnight_hr, data.deep_min, data.light_min, data.rem_min, data.awake_min, data.restless_moments, data.hrv, data.spo2_avg, data.spo2_low, data.respiration_avg, data.respiration_low, data.stress, data.body_battery_change, data.hrv_status, data.fell_asleep, data.woke_up, data.notes]);
+          await saveEditLog(userId, data.date, req.body.originals);
           return res.json({ ok: true, action: "inserted", date: data.date });
         }
       }

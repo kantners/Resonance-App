@@ -54,6 +54,7 @@ const SLEEP_FIELDS: { key: keyof SleepData; label: string; type: "text" | "numbe
   { key: "date", label: "Date", type: "text" },
   { key: "sleep_score", label: "Sleep Score", type: "number" },
   { key: "hours", label: "Total Hours", type: "number" },
+  { key: "quality", label: "Quality (1-10)", type: "number" },
   { key: "deep_min", label: "Deep (min)", type: "number" },
   { key: "light_min", label: "Light (min)", type: "number" },
   { key: "rem_min", label: "REM (min)", type: "number" },
@@ -128,6 +129,7 @@ export default function ScreenshotImport() {
   const [savedAction, setSavedAction] = useState<string>("");
   const [scanCount, setScanCount] = useState(0);
   const [scanTotal, setScanTotal] = useState(0);
+  const scannedRef = useRef<Record<string, any>>({}); // values exactly as read from screenshots
 
   const reset = () => {
     setPhase("idle");
@@ -138,6 +140,7 @@ export default function ScreenshotImport() {
     setSavedAction("");
     setScanCount(0);
     setScanTotal(0);
+    scannedRef.current = {};
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (addMoreRef.current) addMoreRef.current.value = "";
   };
@@ -145,6 +148,7 @@ export default function ScreenshotImport() {
   const parseFile = async (file: File): Promise<{ type: string; data: Record<string, any> }> => {
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("today", new Date().toLocaleDateString("en-CA")); // device-local YYYY-MM-DD
 
     // 60-second timeout — OpenAI Vision can be slow
     const controller = new AbortController();
@@ -212,6 +216,7 @@ export default function ScreenshotImport() {
       }
 
       const { type, data } = mergeFields(results);
+      for (const [k, v] of Object.entries(data)) if (scannedRef.current[k] == null && v != null) scannedRef.current[k] = v;
 
       setFields(prev => {
         const merged: Record<string, any> = { ...data };
@@ -254,6 +259,7 @@ export default function ScreenshotImport() {
         setScanCount(prev => prev + 1);
       }
 
+      for (const r of results) for (const [k, v] of Object.entries(r.data ?? {})) if (scannedRef.current[k] == null && v != null) scannedRef.current[k] = v;
       // Merge new results into existing fields — existing non-null values win
       setFields(prev => {
         const merged: Record<string, any> = { ...prev };
@@ -287,13 +293,24 @@ export default function ScreenshotImport() {
     }));
   };
 
+  // Fields read from a screenshot and then changed by hand: { field: { original, saved } }
+  const sleepOriginals = () => {
+    const out: Record<string, { original: any; saved: any }> = {};
+    for (const [k, was] of Object.entries(scannedRef.current)) {
+      if (was == null || k === "date" || k === "notes") continue;
+      const now = fields[k];
+      if (now != null && String(now) !== String(was)) out[k] = { original: was, saved: now };
+    }
+    return Object.keys(out).length ? out : undefined;
+  };
+
   const handleCommit = async () => {
     setPhase("saving");
     try {
       const res = await fetch("/api/commit-screenshot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: dataType, data: fields }),
+        body: JSON.stringify({ type: dataType, data: fields, originals: dataType === "sleep" ? sleepOriginals() : undefined }),
         credentials: "include",
       });
       const json = await res.json();
@@ -436,7 +453,7 @@ export default function ScreenshotImport() {
       {phase === "saving" && (
         <div className="screenshot-status-card">
           <Loader2 size={18} className="screenshot-spinner" />
-          <span className="screenshot-status-text">Saving to KEWT...</span>
+          <span className="screenshot-status-text">Saving to Resonance...</span>
         </div>
       )}
 
@@ -449,7 +466,7 @@ export default function ScreenshotImport() {
               {savedAction === "updated" ? "Entry updated" : "Entry saved"}
             </p>
             <p className="screenshot-review-hint">
-              {dataType === "sleep" ? "Sleep log" : dataType === "body_comp" ? "Body composition" : "Activity"} written to KEWT.
+              {dataType === "sleep" ? "Sleep log" : dataType === "body_comp" ? "Body composition" : "Activity"} written to Resonance.
             </p>
           </div>
           <button className="screenshot-retry-btn" onClick={reset}>
